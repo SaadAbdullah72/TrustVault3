@@ -355,29 +355,28 @@ redis = ["redis (>=2.10.5)"]
 
 [[package]]
 name = "cattrs"
-version = "25.3.0"
+version = "24.1.3"
 description = "Composable complex class support for attrs and dataclasses."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["dev"]
 files = [
-    {file = "cattrs-25.3.0-py3-none-any.whl", hash = "sha256:9896e84e0a5bf723bc7b4b68f4481785367ce07a8a02e7e9ee6eb2819bc306ff"},
-    {file = "cattrs-25.3.0.tar.gz", hash = "sha256:1ac88d9e5eda10436c4517e390a4142d88638fe682c436c93db7ce4a277b884a"},
+    {file = "cattrs-24.1.3-py3-none-any.whl", hash = "sha256:adf957dddd26840f27ffbd060a6c4dd3b2192c5b7c2c0525ef1bd8131d8a83f5"},
+    {file = "cattrs-24.1.3.tar.gz", hash = "sha256:981a6ef05875b5bb0c7fb68885546186d306f10f0f6718fe9b96c226e68821ff"},
 ]
 
 [package.dependencies]
-attrs = ">=25.4.0"
-typing-extensions = ">=4.14.0"
+attrs = ">=23.1.0"
 
 [package.extras]
 bson = ["pymongo (>=4.4.0)"]
 cbor2 = ["cbor2 (>=5.4.6)"]
 msgpack = ["msgpack (>=1.0.5)"]
-msgspec = ["msgspec (>=0.19.0) ; implementation_name == \"cpython\""]
-orjson = ["orjson (>=3.11.3) ; implementation_name == \"cpython\""]
+msgspec = ["msgspec (>=0.18.5) ; implementation_name == \"cpython\""]
+orjson = ["orjson (>=3.9.2) ; implementation_name == \"cpython\""]
 pyyaml = ["pyyaml (>=6.0)"]
 tomlkit = ["tomlkit (>=0.11.8)"]
-ujson = ["ujson (>=5.10.0)"]
+ujson = ["ujson (>=5.7.0)"]
 
 [[package]]
 name = "certifi"
@@ -845,33 +844,6 @@ validation = ["jsonschema[format-nongpl] (>=4.25,<5.0)", "lxml (>=4,<7)", "refer
 xml-validation = ["lxml (>=4,<7)"]
 
 [[package]]
-name = "cyclopts"
-version = "4.5.1"
-description = "Intuitive, easy CLIs based on type hints."
-optional = false
-python-versions = ">=3.10"
-groups = ["dev"]
-files = [
-    {file = "cyclopts-4.5.1-py3-none-any.whl", hash = "sha256:0642c93601e554ca6b7b9abd81093847ea4448b2616280f2a0952416574e8c7a"},
-    {file = "cyclopts-4.5.1.tar.gz", hash = "sha256:fadc45304763fd9f5d6033727f176898d17a1778e194436964661a005078a3dd"},
-]
-
-[package.dependencies]
-attrs = ">=23.1.0"
-docstring-parser = ">=0.15,<4.0"
-rich = ">=13.6.0"
-rich-rst = ">=1.3.1,<2.0.0"
-
-[package.extras]
-debug = ["ipdb (>=0.13.9)", "line-profiler (>=3.5.1)"]
-dev = ["coverage[toml] (>=5.1)", "mkdocs (>=1.4.0)", "pre-commit (>=2.16.0)", "pydantic (>=2.11.2,<3.0.0)", "pytest (>=8.2.0)", "pytest-cov (>=3.0.0)", "pytest-mock (>=3.7.0)", "pyyaml (>=6.0.1)", "syrupy (>=4.0.0)", "toml (>=0.10.2,<1.0.0)", "trio (>=0.10.0)"]
-docs = ["gitpython (>=3.1.31)", "myst-parser[linkify] (>=3.0.1,<5.0.0)", "sphinx (>=7.4.7,<8.2.0)", "sphinx-autodoc-typehints (>=1.25.2,<4.0.0)", "sphinx-copybutton (>=0.5,<1.0)", "sphinx-rtd-dark-mode (>=1.3.0,<2.0.0)", "sphinx-rtd-theme (>=3.0.0,<4.0.0)"]
-mkdocs = ["markdown (>=3.3)", "mkdocs (>=1.4.0)", "pymdown-extensions (>=10.0)"]
-toml = ["tomli (>=2.0.0) ; python_version < \"3.11\""]
-trio = ["trio (>=0.10.0)"]
-yaml = ["pyyaml (>=6.0.1)"]
-
-[[package]]
 name = "defusedxml"
 version = "0.7.1"
 description = "XML bomb protection for Python stdlib modules"
@@ -885,31 +857,14 @@ files = [
 
 [[package]]
 name = "docstring-parser"
-version = "0.17.0"
+version = "0.14.1"
 description = "Parse Python docstrings in reST, Google and Numpydoc format"
 optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
+python-versions = ">=3.6,<4.0"
+groups = ["main", "dev"]
 files = [
-    {file = "docstring_parser-0.17.0-py3-none-any.whl", hash = "sha256:cf2569abd23dce8099b300f9b4fa8191e9582dda731fd533daf54c4551658708"},
-    {file = "docstring_parser-0.17.0.tar.gz", hash = "sha256:583de4a309722b3315439bb31d64ba3eebada841f2e2cee23b99df001434c912"},
-]
-
-[package.extras]
-dev = ["pre-commit (>=2.16.0) ; python_version >= \"3.9\"", "pydoctor (>=25.4.0)", "pytest"]
-docs = ["pydoctor (>=25.4.0)"]
-test = ["pytest"]
-
-[[package]]
-name = "docutils"
-version = "0.22.4"
-description = "Docutils -- Python Documentation Utilities"
-optional = false
-python-versions = ">=3.9"
-groups = ["dev"]
-files = [
-    {file = "docutils-0.22.4-py3-none-any.whl", hash = "sha256:d0013f540772d1420576855455d050a2180186c91c15779301ac2ccb3eeb68de"},
-    {file = "docutils-0.22.4.tar.gz", hash = "sha256:4db53b1fde9abecbb74d91230d32ab626d94f6badfc575d6db9194a49df29968"},
+    {file = "docstring_parser-0.14.1-py3-none-any.whl", hash = "sha256:14ac6ec1f1ba6905c4d8cb90fd0bc55394f5678183752c90e44812bf28d7a515"},
+    {file = "docstring_parser-0.14.1.tar.gz", hash = "sha256:2c77522e31b7c88b1ab457a1f3c9ae38947ad719732260ba77ee8a3deb58622a"},
 ]
 
 [[package]]
@@ -930,6 +885,21 @@ six = ">=1.9.0"
 [package.extras]
 gmpy = ["gmpy"]
 gmpy2 = ["gmpy2"]
+
+[[package]]
+name = "executing"
+version = "2.0.1"
+description = "Get the currently executing AST node of a frame, and other information"
+optional = false
+python-versions = ">=3.5"
+groups = ["main"]
+files = [
+    {file = "executing-2.0.1-py2.py3-none-any.whl", hash = "sha256:eac49ca94516ccc753f9fb5ce82603156e590b27525a8bc32cce8ae302eb61bc"},
+    {file = "executing-2.0.1.tar.gz", hash = "sha256:35afe2ce3affba8ee97f2d69927fa823b08b472b7b994e36a52a964b93d16147"},
+]
+
+[package.extras]
+tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich ; python_version >= \"3.11\""]
 
 [[package]]
 name = "filelock"
@@ -1285,22 +1255,6 @@ files = [
 
 [package.extras]
 dev = ["Sphinx (>=5.0.2)", "doc8 (>=0.11.2)", "pytest (>=7.0.1)", "pytest-xdist (>=2)", "ruff", "sphinx-autobuild", "sphinx-copybutton", "sphinx-reredirects (>=0.1.2)", "sphinx-rtd-dark-mode (>=1.3.0)", "sphinx-rtd-theme (>=1.0.0)", "sphinxcontrib-apidoc (>=0.4.0)", "twine"]
-
-[[package]]
-name = "lsprotocol"
-version = "2025.0.0"
-description = "Python types for Language Server Protocol."
-optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
-files = [
-    {file = "lsprotocol-2025.0.0-py3-none-any.whl", hash = "sha256:f9d78f25221f2a60eaa4a96d3b4ffae011b107537facee61d3da3313880995c7"},
-    {file = "lsprotocol-2025.0.0.tar.gz", hash = "sha256:e879da2b9301e82cfc3e60d805630487ac2f7ab17492f4f5ba5aaba94fe56c29"},
-]
-
-[package.dependencies]
-attrs = ">=21.3.0"
-cattrs = "!=23.2.1"
 
 [[package]]
 name = "markdown-it-py"
@@ -1955,29 +1909,27 @@ files = [
 
 [[package]]
 name = "puyapy"
-version = "5.7.1"
+version = "4.11.0"
 description = "An optimising compiler for Algorand Python"
 optional = false
-python-versions = "<4,>=3.12.0"
+python-versions = "<4.0,>=3.12"
 groups = ["dev"]
 files = [
-    {file = "puyapy-5.7.1-py3-none-any.whl", hash = "sha256:20e38743f8086f59622a57b40d5b4a4c4e3097ba232dbfaa2df0ea5781c937b1"},
+    {file = "puyapy-4.11.0-py3-none-any.whl", hash = "sha256:250dcabbd27ea6e3ed0f72e499a938255e55c3a3fa3e188e9dcac364713d13a9"},
 ]
 
 [package.dependencies]
-attrs = ">=25.3.0,<26"
-cattrs = ">=25.3,<26"
-colorama = {version = ">=0.4.6,<0.5", markers = "sys_platform == \"win32\""}
-cyclopts = ">=3.23.1"
+attrs = ">=25.3.0,<26.0.0"
+cattrs = ">=24.1,<25.0"
+colorama = {version = ">=0.4.6,<0.5.0", markers = "sys_platform == \"win32\""}
 docstring-parser = ">=0.14.1"
-immutabledict = ">=4.2.0,<5"
-mypy = "1.19.1"
-networkx = ">=3.6,<4"
+immutabledict = ">=4.2.0,<5.0.0"
+mypy_extensions = ">=1.0.0,<2.0.0"
+networkx = ">=3.4.2,<4.0.0"
 packaging = ">=24.0,<25.0"
 pycryptodomex = ">=3.6.0,<4"
-pygls = ">=2.0.0"
-structlog = ">=25.2.0,<26"
-typing-extensions = ">=4.11.0,<5"
+structlog = ">=25.2.0,<26.0.0"
+typing-extensions = ">=4.11.0,<5.0.0"
 
 [[package]]
 name = "py-algorand-sdk"
@@ -2076,26 +2028,6 @@ files = [
 ]
 
 [[package]]
-name = "pygls"
-version = "2.0.1"
-description = "A pythonic generic language server (pronounced like 'pie glass')"
-optional = false
-python-versions = ">=3.9"
-groups = ["dev"]
-files = [
-    {file = "pygls-2.0.1-py3-none-any.whl", hash = "sha256:d29748042cea5bedc98285eb3e2c0c60bf3fc73786319519001bf72bbe8f36cc"},
-    {file = "pygls-2.0.1.tar.gz", hash = "sha256:2f774a669fbe2ece977d302786f01f9b0c5df7d0204ea0fa371ecb08288d6b86"},
-]
-
-[package.dependencies]
-attrs = ">=24.3.0"
-cattrs = ">=23.1.2"
-lsprotocol = "2025.0.0"
-
-[package.extras]
-ws = ["websockets (>=13.0)"]
-
-[[package]]
 name = "pygments"
 version = "2.19.2"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -2166,6 +2098,25 @@ files = [
 
 [package.extras]
 diagrams = ["jinja2", "railroad-diagrams"]
+
+[[package]]
+name = "pyteal"
+version = "0.27.0"
+description = "Algorand Smart Contracts in Python"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "pyteal-0.27.0-py3-none-any.whl", hash = "sha256:d1fa79c6a7a94c82847b13d8f37e03158d0b05e6b361b936644b49d4d150d59e"},
+    {file = "pyteal-0.27.0.tar.gz", hash = "sha256:f5630bc4587ed1304102ffba9c8f8a13344d2f3c161504ba2912a781533e48b1"},
+]
+
+[package.dependencies]
+docstring-parser = "0.14.1"
+executing = "2.0.1"
+py-algorand-sdk = ">=2.0.0,<3.0.0"
+semantic-version = ">=2.9.0,<3.0.0"
+tabulate = ">=0.9.0,<0.10.0"
 
 [[package]]
 name = "pytest"
@@ -2321,25 +2272,6 @@ pygments = ">=2.13.0,<3.0.0"
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
-name = "rich-rst"
-version = "1.3.2"
-description = "A beautiful reStructuredText renderer for rich"
-optional = false
-python-versions = "*"
-groups = ["dev"]
-files = [
-    {file = "rich_rst-1.3.2-py3-none-any.whl", hash = "sha256:a99b4907cbe118cf9d18b0b44de272efa61f15117c61e39ebdc431baf5df722a"},
-    {file = "rich_rst-1.3.2.tar.gz", hash = "sha256:a1196fdddf1e364b02ec68a05e8ff8f6914fee10fbca2e6b6735f166bb0da8d4"},
-]
-
-[package.dependencies]
-docutils = "*"
-rich = ">=12.0.0"
-
-[package.extras]
-docs = ["sphinx"]
-
-[[package]]
 name = "ruff"
 version = "0.9.10"
 description = "An extremely fast Python linter and code formatter, written in Rust."
@@ -2366,6 +2298,22 @@ files = [
     {file = "ruff-0.9.10-py3-none-win_arm64.whl", hash = "sha256:5fd804c0327a5e5ea26615550e706942f348b197d5475ff34c19733aee4b2e69"},
     {file = "ruff-0.9.10.tar.gz", hash = "sha256:9bacb735d7bada9cfb0f2c227d3658fc443d90a727b47f206fb33f52f3c0eac7"},
 ]
+
+[[package]]
+name = "semantic-version"
+version = "2.10.0"
+description = "A library implementing the 'SemVer' scheme."
+optional = false
+python-versions = ">=2.7"
+groups = ["main"]
+files = [
+    {file = "semantic_version-2.10.0-py2.py3-none-any.whl", hash = "sha256:de78a3b8e0feda74cabc54aab2da702113e33ac9d9eb9d2389bcf1f58b7d9177"},
+    {file = "semantic_version-2.10.0.tar.gz", hash = "sha256:bdabb6d336998cbb378d4b9db3a4b56a1e3235701dc05ea2690d9a997ed5041c"},
+]
+
+[package.extras]
+dev = ["Django (>=1.11)", "check-manifest", "colorama (<=0.4.1) ; python_version == \"3.4\"", "coverage", "flake8", "nose2", "readme-renderer (<25.0) ; python_version == \"3.4\"", "tox", "wheel", "zest.releaser[recommended]"]
+doc = ["Sphinx", "sphinx-rtd-theme"]
 
 [[package]]
 name = "six"
@@ -2402,6 +2350,21 @@ files = [
     {file = "structlog-25.5.0-py3-none-any.whl", hash = "sha256:a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f"},
     {file = "structlog-25.5.0.tar.gz", hash = "sha256:098522a3bebed9153d4570c6d0288abf80a031dfdb2048d59a49e9dc2190fc98"},
 ]
+
+[[package]]
+name = "tabulate"
+version = "0.9.0"
+description = "Pretty-print tabular data"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
+    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
+]
+
+[package.extras]
+widechars = ["wcwidth"]
 
 [[package]]
 name = "tomli"
@@ -2650,4 +2613,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "0a2a2d9db1ee9a1b6a7dee960d2b916b6be9d1a1e119d0017dfedba66a04cf05"
+content-hash = "52ca153931e5d39536128c22b74f57c624475165c77e3afb7dbed47b307e19fc"

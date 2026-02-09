@@ -1,0 +1,43 @@
+{
+    "name": "AutoInheritanceVault",
+    "methods": [
+        {
+            "name": "bootstrap",
+            "args": [
+                {
+                    "type": "address",
+                    "name": "beneficiary"
+                },
+                {
+                    "type": "uint64",
+                    "name": "lock_duration"
+                }
+            ],
+            "returns": {
+                "type": "void"
+            }
+        },
+        {
+            "name": "deposit",
+            "args": [],
+            "returns": {
+                "type": "void"
+            }
+        },
+        {
+            "name": "heartbeat",
+            "args": [],
+            "returns": {
+                "type": "void"
+            }
+        },
+        {
+            "name": "auto_release",
+            "args": [],
+            "returns": {
+                "type": "void"
+            }
+        }
+    ],
+    "networks": {}
+}
