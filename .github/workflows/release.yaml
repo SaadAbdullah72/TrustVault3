@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.vscode/**'
+      - '.idea/**'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  TrustVault-contracts-validate:
+    name: Run TrustVault-contracts release
+    secrets: inherit
+    uses: ./.github/workflows/TrustVault-contracts-ci.yaml
+
+  TrustVault-contracts-release:
+    name: Run TrustVault-contracts release
+    secrets: inherit
+    uses: ./.github/workflows/TrustVault-contracts-cd.yaml
+    needs: TrustVault-contracts-validate
+
+  TrustVault-frontend-validate:
+    name: Run TrustVault-frontend release
+    secrets: inherit
+    uses: ./.github/workflows/TrustVault-frontend-ci.yaml
+
+  TrustVault-frontend-release:
+    name: Run TrustVault-frontend release
+    secrets: inherit
+    uses: ./.github/workflows/TrustVault-frontend-cd.yaml
+    needs: TrustVault-frontend-validate

@@ -1,0 +1,14 @@
+name: Pull Request validation
+
+on: [pull_request]
+
+
+jobs:
+  TrustVault-contracts-ci:
+    name: Run TrustVault-contracts validation
+    uses: ./.github/workflows/TrustVault-contracts-ci.yaml
+
+  TrustVault-frontend-ci:
+    name: Run TrustVault-frontend validation
+    uses: ./.github/workflows/TrustVault-frontend-ci.yaml
+
