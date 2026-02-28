@@ -23,26 +23,6 @@ export const VAULT_NOTE_PREFIX = 'TrustVault:v1:beneficiary:'
 // Function to discover vaults where the user is either the creator or beneficiary
 export const discoverVaults = async (address: string): Promise<bigint[]> => {
     try {
-        const specificNote = new TextEncoder().encode(VAULT_NOTE_PREFIX + address)
-        const generalNote = new TextEncoder().encode(VAULT_NOTE_PREFIX)
-
-        // Search for apps where user is creator OR where user is involved in an App Transaction
-        const [createdApps, specificNoteTxs, generalNoteTxs, involvedTxs, stateSearch] = await Promise.all([
-            // 1. Apps created by this user
-            indexerClient.searchForApplications().creator(address).do().catch(() => ({ applications: [] })),
-            // 2. Transactions tagged with this beneficiary's discovery note (Exact)
-            indexerClient.searchForTransactions().notePrefix(specificNote).do().catch(() => ({ transactions: [] })),
-            // 3. Transactions with general vault prefix (Backup)
-            indexerClient.searchForTransactions().notePrefix(generalNote).do().catch(() => ({ transactions: [] })),
-            // 4. Transactions where this user was explicitly involved (as an account)
-            indexerClient.searchForTransactions().address(address).txType('appl').do().catch(() => ({ transactions: [] })),
-            // 5. (Ultimate Jugaar) Apps where the user's address is stored in Global State
-            indexerClient.searchForApplications()
-                // @ts-ignore - v3 syntax check
-                .globalStateByteValue(Buffer.from(algosdk.decodeAddress(address).publicKey).toString('base64'))
-                .do().catch(() => ({ applications: [] }))
-        ])
-
         const foundIds = new Set<string>()
 
         // Helper to process transactions
@@ -53,23 +33,188 @@ export const discoverVaults = async (address: string): Promise<bigint[]> => {
             })
         }
 
+        // Run both searches in parallel for speed
+        const [createdApps, involvedTxs] = await Promise.all([
+            indexerClient.searchForApplications().creator(address).do().catch((e: any) => {
+                console.warn('Creator search failed:', e)
+                return { applications: [] }
+            }),
+            indexerClient.searchForTransactions().address(address).txType('appl').do().catch((e: any) => {
+                console.warn('Involved txs search failed:', e)
+                return { transactions: [] }
+            })
+        ])
+
         if (createdApps.applications) {
             createdApps.applications.forEach((app: any) => foundIds.add(app.id.toString()))
         }
-
-        if (stateSearch.applications) {
-            stateSearch.applications.forEach((app: any) => foundIds.add(app.id.toString()))
-        }
-
-        processTxs(specificNoteTxs.transactions || [])
-        processTxs(generalNoteTxs.transactions || [])
         processTxs(involvedTxs.transactions || [])
 
-        console.log(`Discovery Results for ${address}: Found ${foundIds.size} unique IDs.`)
+        // Also include locally cached vault IDs
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem(`trustvault_ids_${address}`)
+            if (cached) {
+                try {
+                    JSON.parse(cached).forEach((id: string) => foundIds.add(id))
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        console.log(`Discovery for ${address}: Found ${foundIds.size} vault(s)`)
         return Array.from(foundIds).map(id => BigInt(id))
     } catch (error) {
-        console.error('Error discoverying vaults:', error)
+        console.error('Error discovering vaults:', error)
         return []
+    }
+}
+
+// Type for claimable vault (beneficiary auto-discovery)
+export interface ClaimableVault {
+    appId: bigint
+    state: VaultState
+}
+
+// Discover vaults where the user is listed as beneficiary AND timer has expired
+// Uses Supabase (primary), note-prefix, localStorage, and Indexer as discovery methods
+export const discoverBeneficiaryVaults = async (address: string): Promise<ClaimableVault[]> => {
+    try {
+        const foundIds = new Set<string>()
+
+        // Run ALL discovery methods in parallel for speed
+        const [supabaseIds, noteTxs, involvedTxs] = await Promise.all([
+            // Method 0: Supabase cloud registry (PRIMARY — cross-device)
+            import('./supabase').then(mod => mod.getVaultsByBeneficiary(address)).catch(() => [] as string[]),
+
+            // Method 1: Note-prefix search (blockchain — finds bootstrap txns)
+            indexerClient.searchForTransactions()
+                .notePrefix(new TextEncoder().encode(VAULT_NOTE_PREFIX + address))
+                .do()
+                .catch(() => ({ transactions: [] })),
+
+            // Method 2: Address-involved txn search (fallback)
+            indexerClient.searchForTransactions().address(address).txType('appl')
+                .do()
+                .catch(() => ({ transactions: [] }))
+        ])
+
+        // Add Supabase results
+        supabaseIds.forEach(id => foundIds.add(id))
+        if (supabaseIds.length > 0) console.log(`  Supabase: found ${supabaseIds.length} vault(s)`)
+
+        // Add note-prefix results
+        const noteTransactions = (noteTxs as any).transactions || []
+        noteTransactions.forEach((tx: any) => {
+            const appId = tx['application-transaction']?.['application-id']
+            if (appId) foundIds.add(appId.toString())
+        })
+
+        // Add address search results
+        const addrTransactions = (involvedTxs as any).transactions || []
+        addrTransactions.forEach((tx: any) => {
+            const appId = tx['application-transaction']?.['application-id']
+            if (appId) foundIds.add(appId.toString())
+        })
+
+        // Method 3: localStorage fallback
+        if (typeof window !== 'undefined') {
+            try {
+                const registry = localStorage.getItem('trustvault_beneficiary_registry')
+                if (registry) {
+                    const map: Record<string, string[]> = JSON.parse(registry)
+                        ; (map[address.toUpperCase()] || []).forEach(id => foundIds.add(id))
+                }
+            } catch (e) { /* ignore */ }
+            try {
+                const cached = localStorage.getItem(`trustvault_ids_${address}`)
+                if (cached) JSON.parse(cached).forEach((id: string) => foundIds.add(id))
+            } catch (e) { /* ignore */ }
+        }
+
+        const allIds = Array.from(foundIds).map(id => BigInt(id))
+        if (allIds.length === 0) {
+            console.log(`Beneficiary scan for ${address.slice(0, 8)}...: No vaults found`)
+            return []
+        }
+
+        console.log(`Beneficiary scan: Checking ${allIds.length} vault(s)...`)
+
+        // Fetch ALL vault states in parallel
+        const states = await Promise.all(
+            allIds.map(id => fetchVaultState(id).catch(() => null))
+        )
+
+        const now = Math.floor(Date.now() / 1000)
+        const results: ClaimableVault[] = []
+
+        states.forEach((state, idx) => {
+            if (!state) return
+
+            const beneficiaryMatch = (state.beneficiary || '').toUpperCase() === address.toUpperCase()
+            const isExpired = now >= (state.lastHeartbeat + state.lockDuration)
+            const notReleased = !state.released
+
+            if (beneficiaryMatch) {
+                console.log(`  Vault #${allIds[idx]}: BENEFICIARY ✓ expired=${isExpired ? 'YES' : 'no'} released=${state.released ? 'YES' : 'no'}`)
+            }
+
+            if (beneficiaryMatch && isExpired && notReleased) {
+                results.push({ appId: allIds[idx], state })
+            }
+        })
+
+        console.log(`Beneficiary Discovery: ${results.length} claimable vault(s)!`)
+        return results
+    } catch (error) {
+        console.error('Error discovering beneficiary vaults:', error)
+        return []
+    }
+}
+
+// Save beneficiary-to-vault mapping in global localStorage registry
+export const saveBeneficiaryMapping = (beneficiaryAddress: string, appId: bigint) => {
+    if (typeof window === 'undefined') return
+    try {
+        const registry: Record<string, string[]> = JSON.parse(
+            localStorage.getItem('trustvault_beneficiary_registry') || '{}'
+        )
+        const key = beneficiaryAddress.toUpperCase()
+        if (!registry[key]) registry[key] = []
+        const idStr = appId.toString()
+        if (!registry[key].includes(idStr)) {
+            registry[key].push(idStr)
+        }
+        localStorage.setItem('trustvault_beneficiary_registry', JSON.stringify(registry))
+        console.log(`Saved vault #${idStr} for beneficiary ${beneficiaryAddress.slice(0, 8)}...`)
+    } catch (e) {
+        console.warn('Failed to save beneficiary mapping:', e)
+    }
+}
+
+// Check account balance before vault creation
+export const checkAccountBalance = async (address: string, requiredMicroAlgos: number): Promise<{ ok: boolean, balance: number, needed: number }> => {
+    try {
+        const info = await algodClient.accountInformation(address).do()
+        const balance = Number(info.amount || 0)
+        const minBalance = Number((info as any).minBalance || (info as any)['min-balance'] || 100000)
+        const available = balance - minBalance
+        return {
+            ok: available >= requiredMicroAlgos,
+            balance: balance,
+            needed: minBalance + requiredMicroAlgos
+        }
+    } catch (e) {
+        return { ok: true, balance: 0, needed: 0 } // Allow attempt if check fails
+    }
+}
+
+// Get vault's ALGO balance
+export const getVaultBalance = async (appId: bigint): Promise<number> => {
+    try {
+        const appAddress = getAppAddress(appId)
+        const info = await algodClient.accountInformation(appAddress).do()
+        return Number(info.amount || 0) / 1_000_000
+    } catch (e) {
+        return 0
     }
 }
 

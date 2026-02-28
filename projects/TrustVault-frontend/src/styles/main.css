@@ -8,29 +8,13 @@
   }
 }
 
-/* Premium Cyber Vault Background (Local SVG) */
+/* Premium Background — Canvas handles the neural network animation */
 .premium-bg {
-  background-color: #020617;
-  /* Premium Earth Network Background */
-  background-image: url('/src/assets/bg-premium.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background-color: transparent;
   position: relative;
   min-height: 100vh;
 }
 
-.premium-bg::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
-}
 
 /* Enhanced Snake Border Animation */
 .snake-border {
@@ -145,4 +129,51 @@
 .hover-glow:hover {
   box-shadow: 0 0 25px rgba(139, 92, 246, 0.3);
   border-color: rgba(139, 92, 246, 0.5);
+}
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+
+  /* Reduce paddings on mobile */
+  .max-w-6xl {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Timer text smaller on mobile */
+  .font-mono.text-7xl,
+  .font-mono.text-8xl,
+  .font-mono.text-6xl {
+    font-size: 2.5rem !important;
+  }
+
+  /* Analytics cards stack 2x2 on small screens */
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Action buttons full width */
+  .grid-cols-1.md\\:grid-cols-2>button {
+    font-size: 0.875rem !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+
+  /* Very small screens - single column analytics */
+  .grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Smaller header */
+  .text-2xl.font-black.tracking-tighter {
+    font-size: 1.25rem !important;
+  }
+
+  /* Control bar compact */
+  .glass-premium {
+    padding: 0.75rem !important;
+  }
 }

@@ -6,14 +6,21 @@ import {
     VaultState,
     algodClient,
     discoverVaults,
+    discoverBeneficiaryVaults,
+    ClaimableVault,
     deployVault,
     callHeartbeat,
     callAutoRelease,
     callWithdraw,
+    saveBeneficiaryMapping,
+    checkAccountBalance,
+    getVaultBalance,
     VAULT_NOTE_PREFIX
 } from '../utils/algorand'
+import { saveVaultToRegistry } from '../utils/supabase'
 import Countdown from '../components/Countdown'
 import VaultStatus from '../components/VaultStatus'
+import NeuralBackground from '../components/NeuralBackground'
 import algosdk from 'algosdk'
 import {
     Shield,
@@ -60,6 +67,7 @@ export default function VaultPage() {
 
     // UI state
     const [vaultState, setVaultState] = useState<VaultState | null>(null)
+    const [vaultBalance, setVaultBalance] = useState<number>(0)
     const [loading, setLoading] = useState(false)
     const [discovering, setDiscovering] = useState(false)
     const [error, setError] = useState('')
@@ -73,18 +81,36 @@ export default function VaultPage() {
     const [importIdInput, setImportIdInput] = useState('')
     const [showImportForm, setShowImportForm] = useState(false)
 
-    // Load available vaults
+    // Beneficiary auto-discovery state
+    const [claimableVaults, setClaimableVaults] = useState<ClaimableVault[]>([])
+    const [scanningClaims, setScanningClaims] = useState(false)
+
+    // Load available vaults (filter out released ones)
     const loadUserVaults = useCallback(async () => {
         if (!activeAddress) return
         setDiscovering(true)
         try {
             const ids = await discoverVaults(activeAddress)
-            setUserVaults(ids)
-            // Cache results
-            localStorage.setItem(`trustvault_ids_${activeAddress}`, JSON.stringify(ids.map(id => id.toString())))
 
-            if (ids.length > 0 && selectedAppId === null) {
-                setSelectedAppId(ids[0])
+            // Filter out released/dead vaults
+            const activeVaults: bigint[] = []
+            const states = await Promise.all(
+                ids.map(id => fetchVaultState(id).catch(() => null))
+            )
+            ids.forEach((id, idx) => {
+                const state = states[idx]
+                // Keep if state couldn't be fetched (benefit of doubt) or if not released
+                if (!state || !state.released) {
+                    activeVaults.push(id)
+                }
+            })
+
+            setUserVaults(activeVaults)
+            // Cache results
+            localStorage.setItem(`trustvault_ids_${activeAddress}`, JSON.stringify(activeVaults.map(id => id.toString())))
+
+            if (activeVaults.length > 0 && selectedAppId === null) {
+                setSelectedAppId(activeVaults[0])
             }
         } catch (e) {
             console.error('Discovery error', e)
@@ -93,12 +119,41 @@ export default function VaultPage() {
         }
     }, [activeAddress, selectedAppId])
 
+    // Auto-discover claimable vaults for beneficiary
+    const scanForClaimableVaults = useCallback(async () => {
+        if (!activeAddress) return
+        setScanningClaims(true)
+        try {
+            const vaults = await discoverBeneficiaryVaults(activeAddress)
+            setClaimableVaults(vaults)
+        } catch (e) {
+            console.error('Beneficiary scan error', e)
+        } finally {
+            setScanningClaims(false)
+        }
+    }, [activeAddress])
+
+    // Auto-scan on connect + every 30 seconds
+    useEffect(() => {
+        if (activeAddress) {
+            scanForClaimableVaults()
+            const interval = setInterval(scanForClaimableVaults, 30000)
+            return () => clearInterval(interval)
+        } else {
+            setClaimableVaults([])
+        }
+    }, [activeAddress, scanForClaimableVaults])
+
     // Load state for selected vault
     const loadVaultState = useCallback(async () => {
         if (selectedAppId === null) return
         try {
-            const state = await fetchVaultState(selectedAppId)
+            const [state, balance] = await Promise.all([
+                fetchVaultState(selectedAppId),
+                getVaultBalance(selectedAppId)
+            ])
             setVaultState(state)
+            setVaultBalance(balance)
         } catch (e) {
             console.error('State load error', e)
         }
@@ -121,6 +176,16 @@ export default function VaultPage() {
         setLoading(true)
         setError('')
         try {
+            // Check balance before attempting
+            const depositMicro = Math.round(parseFloat(depositInput) * 1_000_000)
+            const totalNeeded = depositMicro + 500_000 // deposit + fees + min balance buffer
+            const balCheck = await checkAccountBalance(activeAddress, totalNeeded)
+            if (!balCheck.ok) {
+                setError(`Insufficient balance! You have ${(balCheck.balance / 1_000_000).toFixed(2)} ALGO but need ~${(balCheck.needed / 1_000_000).toFixed(2)} ALGO (including minimum balance). Fund your account first.`)
+                setLoading(false)
+                return
+            }
+
             const appId = await deployVault(activeAddress, transactionSigner)
             if (!appId) throw new Error('Deployment failed')
 
@@ -153,12 +218,17 @@ export default function VaultPage() {
             const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
                 sender: activeAddress,
                 receiver: appAddress,
-                amount: Math.round(parseFloat(depositInput) * 1_000_000),
+                amount: depositMicro,
                 suggestedParams: suggestedParams,
             })
             atc.addTransaction({ txn: payTxn, signer: transactionSigner })
 
             await atc.execute(algodClient, 4)
+
+            // Save beneficiary mapping to cloud (Supabase) + localStorage
+            saveBeneficiaryMapping(beneficiaryInput.trim(), appId)
+            saveVaultToRegistry(appId.toString(), beneficiaryInput.trim(), activeAddress)
+
             setSelectedAppId(appId)
             await loadUserVaults()
             setShowCreateForm(false)
@@ -257,8 +327,29 @@ export default function VaultPage() {
             } else {
                 setTxId('No vaults found.')
             }
+            // Also refresh claimable vaults
+            await scanForClaimableVaults()
         } catch (e: any) {
             setError(e.message || 'Scan failed')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Direct claim for auto-discovered beneficiary vaults (no import needed)
+    const handleDirectClaim = async (vaultAppId: bigint) => {
+        if (!activeAddress) return
+        setLoading(true)
+        setError('')
+        try {
+            const id = await callAutoRelease(vaultAppId, activeAddress, transactionSigner)
+            setTxId(`Inheritance funds claimed! TX: ${id}`)
+            // Remove from claimable list
+            setClaimableVaults(prev => prev.filter(v => v.appId !== vaultAppId))
+            // Refresh
+            await scanForClaimableVaults()
+        } catch (e: any) {
+            setError(e.message || 'Claim failed')
         } finally {
             setLoading(false)
         }
@@ -287,6 +378,9 @@ export default function VaultPage() {
 
     return (
         <div className="premium-bg min-h-screen text-slate-100 font-['Outfit',sans-serif] selection:bg-violet-500/30 overflow-x-hidden">
+            {/* Animated Neural Network Background */}
+            <NeuralBackground />
+
             {/* Header */}
             <div className="glass-premium sticky top-0 z-50 px-6 py-4 mb-8">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -336,16 +430,15 @@ export default function VaultPage() {
                 {!activeAddress ? (
                     <div className="relative z-10">
                         {/* Landing Page Snake Border */}
-                        <div className="snake-border p-[2px] rounded-[3rem] shadow-[0_0_100px_rgba(139,92,246,0.3)] bg-gradient-to-b from-slate-800/50 to-slate-900/50 backdrop-blur-md">
+                        <div className="snake-border p-[2px] rounded-[2rem] md:rounded-[3rem] shadow-[0_0_50px_rgba(139,92,246,0.3)] bg-gradient-to-b from-slate-800/50 to-slate-900/50 backdrop-blur-md max-w-full overflow-hidden mx-4 md:mx-0">
                             <div className="snake-border-left"></div>
                             <div className="snake-border-bottom"></div>
-                            <div className="bg-[#020617]/80 rounded-[2.9rem] p-12 md:p-24 text-center relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-full bg-[url('/src/assets/bg-premium.jpg')] opacity-40 bg-cover bg-center pointer-events-none mix-blend-overlay"></div>
-                                <div className="w-24 h-24 mb-8 mx-auto relative group">
-                                    <div className="absolute inset-0 bg-violet-500/30 blur-[40px] rounded-full group-hover:bg-violet-500/50 transition-all duration-500"></div>
+                            <div className="bg-[#020617]/80 rounded-[1.9rem] md:rounded-[2.9rem] p-6 md:p-24 text-center relative overflow-hidden">
+                                <div className="w-16 h-16 md:w-24 md:h-24 mb-6 md:mb-8 mx-auto relative group">
+                                    <div className="absolute inset-0 bg-violet-500/30 blur-[30px] md:blur-[40px] rounded-full group-hover:bg-violet-500/50 transition-all duration-500"></div>
                                     <Shield className="w-full h-full text-white drop-shadow-[0_0_30px_rgba(139,92,246,0.6)] animate-pulse" strokeWidth={1} />
                                 </div>
-                                <h2 className="text-6xl md:text-8xl font-black mb-8 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 drop-shadow-sm">
+                                <h2 className="text-4xl md:text-8xl font-black mb-6 md:mb-8 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 drop-shadow-sm break-words">
                                     Secure Legacy
                                 </h2>
                                 <p className="max-w-2xl mx-auto text-xl text-slate-400 mb-12 leading-relaxed font-light">
@@ -364,6 +457,69 @@ export default function VaultPage() {
                     </div>
                 ) : (
                     <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        {/* ====== CLAIMABLE VAULTS SECTION (Auto-Discovery) ====== */}
+                        {claimableVaults.length > 0 && (
+                            <div className="mb-12 animate-in fade-in slide-in-from-top-8 duration-700">
+                                <div className="snake-border p-[2px] rounded-[2rem] shadow-[0_0_60px_rgba(239,68,68,0.3)] bg-gradient-to-b from-red-900/30 to-slate-900/50">
+                                    <div className="snake-border-left"></div>
+                                    <div className="snake-border-bottom"></div>
+                                    <div className="bg-[#0b101e]/95 backdrop-blur-3xl rounded-[1.9rem] p-8 md:p-12 relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/80 to-transparent"></div>
+                                        <div className="absolute top-0 right-0 w-80 h-80 bg-red-600/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+                                        <div className="relative z-10">
+                                            <div className="flex items-center gap-4 mb-8">
+                                                <div className="relative w-14 h-14 flex items-center justify-center">
+                                                    <div className="absolute inset-0 bg-red-500/20 rounded-xl blur-lg animate-pulse"></div>
+                                                    <Zap className="w-8 h-8 text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Incoming Inheritance</h2>
+                                                    <p className="text-sm text-red-300/70 font-medium mt-1">{claimableVaults.length} vault(s) ready to claim — funds will be sent to your wallet</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {claimableVaults.map((vault) => (
+                                                    <div key={vault.appId.toString()} className="p-6 bg-slate-950/60 rounded-2xl border border-red-500/20 hover:border-red-500/40 transition-all group">
+                                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                                            <div className="space-y-2 flex-1">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vault ID</span>
+                                                                    <span className="text-lg font-mono font-bold text-white">#{vault.appId.toString()}</span>
+                                                                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[9px] font-black rounded-full border border-red-500/30 animate-pulse tracking-wider">TIMER EXPIRED</span>
+                                                                </div>
+                                                                <div className="flex flex-wrap gap-4 text-xs text-slate-400">
+                                                                    <span className="flex items-center gap-1"><Shield className="w-3 h-3 text-blue-400" /> Owner: <span className="font-mono text-slate-300">{vault.state.owner.slice(0, 6)}...{vault.state.owner.slice(-4)}</span></span>
+                                                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-violet-400" /> Timer: {Math.floor(vault.state.lockDuration / 60)} min</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleDirectClaim(vault.appId)}
+                                                                disabled={loading}
+                                                                className="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-lg rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:scale-105 hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] active:scale-95 transition-all flex items-center gap-3 group-hover:from-red-500 group-hover:to-rose-500 min-w-[200px] justify-center"
+                                                            >
+                                                                <Unlock className="w-5 h-5" />
+                                                                {loading ? 'CLAIMING...' : 'CLAIM FUNDS'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Scanning indicator */}
+                        {scanningClaims && claimableVaults.length === 0 && (
+                            <div className="mb-8 flex items-center justify-center gap-3 text-sm text-violet-400 font-bold">
+                                <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"></div>
+                                Scanning for claimable inheritances...
+                            </div>
+                        )}
+
                         {/* Control Bar */}
                         <div className="glass-premium p-4 rounded-3xl mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
                             <div className="flex flex-wrap items-end gap-3 w-full md:w-auto">
@@ -440,26 +596,26 @@ export default function VaultPage() {
                         ) : selectedAppId && vaultState ? (
                             <div className="relative animate-in fade-in slide-in-from-bottom-8 duration-700">
                                 {/* Snake Border Wrapper */}
-                                <div className="snake-border p-[2px] rounded-[2.5rem] shadow-[0_0_60px_rgba(139,92,246,0.1)] bg-slate-900/50">
+                                <div className="snake-border p-[2px] rounded-[2rem] md:rounded-[2.5rem] shadow-[0_0_60px_rgba(139,92,246,0.1)] bg-slate-900/50 max-w-full overflow-hidden mx-4 md:mx-0">
                                     <div className="snake-border-left"></div>
                                     <div className="snake-border-bottom"></div>
-                                    <div className="bg-[#0b101e]/90 backdrop-blur-3xl rounded-[2.4rem] p-8 md:p-12 relative overflow-hidden">
+                                    <div className="bg-[#0b101e]/90 backdrop-blur-3xl rounded-[1.9rem] md:rounded-[2.4rem] p-6 md:p-12 relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-96 h-96 bg-violet-600/10 blur-[100px] rounded-full pointer-events-none"></div>
                                         <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-600/5 blur-[100px] rounded-full pointer-events-none"></div>
 
                                         {/* Vault Content */}
-                                        <div className="relative z-10 space-y-12">
-                                            <div className="flex justify-between items-start border-b border-white/5 pb-8">
-                                                <div className="space-y-4">
+                                        <div className="relative z-10 space-y-8 md:space-y-12">
+                                            <div className="flex flex-col md:flex-row justify-between items-start border-b border-white/5 pb-8 gap-6 md:gap-0">
+                                                <div className="space-y-4 w-full md:w-auto">
                                                     <VaultStatus released={vaultState.released || false} />
-                                                    <div className="flex gap-3">
+                                                    <div className="flex flex-wrap gap-3">
                                                         {isOwner && <span className="px-3 py-1 bg-blue-500/10 text-blue-300 text-[10px] font-black border border-blue-500/20 rounded-full tracking-wider shadow-[0_0_15px_rgba(59,130,246,0.1)] flex items-center gap-1"><Shield className="w-3 h-3" /> OWNER ACCESS</span>}
                                                         {isBeneficiary && <span className="px-3 py-1 bg-emerald-500/10 text-emerald-300 text-[10px] font-black border border-emerald-500/20 rounded-full tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.1)] flex items-center gap-1"><Wallet className="w-3 h-3" /> BENEFICIARY</span>}
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1 flex items-center justify-end gap-1"><Activity className="w-3 h-3" /> Protocol ID</div>
-                                                    <div className="text-3xl font-mono text-white font-bold drop-shadow-md tracking-tight">#{selectedAppId?.toString()}</div>
+                                                <div className="text-left md:text-right w-full md:w-auto">
+                                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1 flex items-center md:justify-end gap-1"><Activity className="w-3 h-3" /> Protocol ID</div>
+                                                    <div className="text-2xl md:text-3xl font-mono text-white font-bold drop-shadow-md tracking-tight break-all">#{selectedAppId?.toString()}</div>
                                                 </div>
                                             </div>
 
@@ -491,15 +647,48 @@ export default function VaultPage() {
                                                 )}
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4 pt-8 border-t border-white/5">
-                                                <div className="p-6 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                                                    <div className="text-[10px] text-slate-500 font-black mb-2 uppercase tracking-widest flex items-center gap-2"><ArrowRight className="w-3 h-3" /> Target Wallet</div>
-                                                    <div className="text-sm font-mono text-slate-300 truncate opacity-80">{vaultState.beneficiary}</div>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-white/5">
+                                                {/* Vault Balance */}
+                                                <div className="p-5 bg-gradient-to-br from-emerald-950/40 to-slate-950/40 rounded-2xl border border-emerald-500/10 hover:border-emerald-500/30 transition-all group">
+                                                    <div className="text-[10px] text-emerald-400/60 font-black mb-3 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Wallet className="w-3 h-3" /> Vault Balance
+                                                    </div>
+                                                    <div className="text-2xl font-black text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)] group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all">
+                                                        {vaultBalance.toFixed(3)}
+                                                        <span className="text-xs ml-1 text-emerald-400/60 font-bold">ALGO</span>
+                                                    </div>
                                                 </div>
-                                                <div className="p-6 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                                                    <div className="text-[10px] text-slate-500 font-black mb-2 uppercase tracking-widest flex items-center gap-2"><Clock className="w-3 h-3" /> Release Timer</div>
-                                                    <div className="text-xl font-black text-slate-300 flex items-center gap-2">
-                                                        <span className="text-violet-500"><Clock className="w-5 h-5" /></span> {Math.floor(vaultState.lockDuration / 60)} Mins
+
+                                                {/* Release Timer */}
+                                                <div className="p-5 bg-gradient-to-br from-violet-950/40 to-slate-950/40 rounded-2xl border border-violet-500/10 hover:border-violet-500/30 transition-all group">
+                                                    <div className="text-[10px] text-violet-400/60 font-black mb-3 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Clock className="w-3 h-3" /> Release Timer
+                                                    </div>
+                                                    <div className="text-2xl font-black text-violet-300 group-hover:text-violet-200 transition-colors">
+                                                        {vaultState.lockDuration >= 3600
+                                                            ? `${Math.floor(vaultState.lockDuration / 3600)}h ${Math.floor((vaultState.lockDuration % 3600) / 60)}m`
+                                                            : `${Math.floor(vaultState.lockDuration / 60)}m ${vaultState.lockDuration % 60}s`
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                {/* Beneficiary */}
+                                                <div className="p-5 bg-gradient-to-br from-blue-950/40 to-slate-950/40 rounded-2xl border border-blue-500/10 hover:border-blue-500/30 transition-all group">
+                                                    <div className="text-[10px] text-blue-400/60 font-black mb-3 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <ArrowRight className="w-3 h-3" /> Beneficiary
+                                                    </div>
+                                                    <div className="text-sm font-mono text-blue-300/80 truncate group-hover:text-blue-200 transition-colors" title={vaultState.beneficiary}>
+                                                        {vaultState.beneficiary.slice(0, 6)}...{vaultState.beneficiary.slice(-6)}
+                                                    </div>
+                                                </div>
+
+                                                {/* Owner */}
+                                                <div className="p-5 bg-gradient-to-br from-amber-950/40 to-slate-950/40 rounded-2xl border border-amber-500/10 hover:border-amber-500/30 transition-all group">
+                                                    <div className="text-[10px] text-amber-400/60 font-black mb-3 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Shield className="w-3 h-3" /> Vault Owner
+                                                    </div>
+                                                    <div className="text-sm font-mono text-amber-300/80 truncate group-hover:text-amber-200 transition-colors" title={vaultState.owner}>
+                                                        {vaultState.owner.slice(0, 6)}...{vaultState.owner.slice(-6)}
                                                     </div>
                                                 </div>
                                             </div>
