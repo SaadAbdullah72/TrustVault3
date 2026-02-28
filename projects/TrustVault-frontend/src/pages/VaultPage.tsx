@@ -401,19 +401,19 @@ export default function VaultPage() {
                     </div>
 
                     {activeAddress ? (
-                        <div className="flex items-center gap-4 bg-slate-950/40 p-1.5 pr-5 rounded-full border border-white/5 backdrop-blur-md shadow-xl hover:border-violet-500/30 transition-colors group">
-                            <div className="relative w-10 h-10">
+                        <div className="flex items-center gap-2 md:gap-4 bg-slate-950/40 p-1.5 pr-3 md:pr-5 rounded-full border border-white/5 backdrop-blur-md shadow-xl hover:border-violet-500/30 transition-colors group max-w-[280px] md:max-w-none">
+                            <div className="relative w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
                                 <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping opacity-20"></div>
                                 <div className="relative w-full h-full rounded-full bg-gradient-to-tr from-slate-800 to-slate-900 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                                    <Wallet className="w-5 h-5 text-emerald-400" />
+                                    <Wallet className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" />
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></div>
+                                <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 md:w-3 md:h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></div>
                             </div>
-                            <div className="text-right">
-                                <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold group-hover:text-emerald-400 transition-colors">Connected</div>
-                                <div className="text-sm text-white font-mono font-bold leading-none tracking-wide text-shadow-sm">{activeAddress.slice(0, 4)}...{activeAddress.slice(-4)}</div>
+                            <div className="text-right min-w-0">
+                                <div className="text-[8px] md:text-[9px] text-slate-400 uppercase tracking-widest font-bold group-hover:text-emerald-400 transition-colors">Connected</div>
+                                <div className="text-xs md:text-sm text-white font-mono font-bold leading-none tracking-wide text-shadow-sm">{activeAddress.slice(0, 4)}...{activeAddress.slice(-4)}</div>
                             </div>
-                            <button onClick={() => startDisconnect(wallets.find(w => w.isActive))} className="ml-2 p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all duration-300">
+                            <button onClick={() => startDisconnect(wallets.find(w => w.isActive))} className="ml-1 md:ml-2 p-1.5 md:p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all duration-300 flex-shrink-0">
                                 <LogOut className="w-4 h-4" />
                             </button>
                         </div>
@@ -711,9 +711,9 @@ export default function VaultPage() {
 
                         {/* Status Display */}
                         {(txId || error) && (
-                            <div className={`mt-8 p-6 rounded-2xl text-center font-bold border backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom-4 flex items-center justify-center gap-3 ${error ? 'bg-red-950/60 border-red-500/30 text-red-200' : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-200'}`}>
-                                {error ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
-                                <span>{error || txId}</span>
+                            <div className={`mt-8 p-4 md:p-6 rounded-2xl text-center font-bold border backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom-4 flex items-center justify-center gap-2 md:gap-3 max-w-full overflow-hidden ${error ? 'bg-red-950/60 border-red-500/30 text-red-200' : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-200'}`}>
+                                {error ? <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" /> : <CheckCircle className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />}
+                                <span className="text-xs md:text-sm break-all min-w-0">{error || txId}</span>
                             </div>
                         )}
                     </div>
