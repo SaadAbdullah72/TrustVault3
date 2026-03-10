@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CheckCircle, AlertTriangle, Clock } from 'lucide-react'
 
 interface CountdownProps {
     lastHeartbeat: number
@@ -27,6 +28,10 @@ export default function Countdown({ lastHeartbeat, lockDuration, released }: Cou
         return () => clearInterval(interval)
     }, [lastHeartbeat, lockDuration, released])
 
+    const total = lockDuration
+    const elapsed = total - timeLeft
+    const progress = total > 0 ? Math.min((elapsed / total) * 100, 100) : 100
+
     const formatTime = (seconds: number) => {
         const months = Math.floor(seconds / (86400 * 30))
         const remainingAfterMonths = seconds % (86400 * 30)
@@ -39,39 +44,106 @@ export default function Countdown({ lastHeartbeat, lockDuration, released }: Cou
         let result = ''
         if (months > 0) result += `${months}mo `
         if (days > 0 || months > 0) result += `${days}d `
-
-        // Always show hours/mins/secs if it's less than a day, or always as part of the total
         result += `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-
         return result.trim()
     }
 
+    // Circular progress SVG params
+    const size = 160
+    const strokeWidth = 6
+    const radius = (size - strokeWidth) / 2
+    const circumference = 2 * Math.PI * radius
+    const strokeDashoffset = circumference - (progress / 100) * circumference
+
     if (released) {
         return (
-            <div className="flex flex-col items-center">
-                <div className="text-6xl md:text-8xl font-black text-emerald-400 drop-shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-bounce font-['Outfit']">
-                    RELEASED
+            <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                padding: '20px 0'
+            }}>
+                <div style={{
+                    width: size, height: size, position: 'relative',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+                            stroke="rgba(16,185,129,0.1)" strokeWidth={strokeWidth} />
+                        <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+                            stroke="#10b981" strokeWidth={strokeWidth}
+                            strokeDasharray={circumference} strokeDashoffset={0}
+                            strokeLinecap="round"
+                            style={{ transition: 'stroke-dashoffset 1s ease' }} />
+                    </svg>
+                    <div style={{
+                        position: 'absolute', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: '4px'
+                    }}>
+                        <CheckCircle style={{ width: 28, height: 28, color: '#10b981' }} />
+                        <span style={{
+                            fontSize: '16px', fontWeight: 800, color: '#10b981',
+                            letterSpacing: '1px'
+                        }}>RELEASED</span>
+                    </div>
                 </div>
-                <div className="mt-4 text-emerald-400/60 font-medium uppercase tracking-[0.2em] text-xs">Assets transmitted to beneficiary</div>
+                <span style={{
+                    fontSize: '11px', color: '#64748b', fontWeight: 500,
+                    letterSpacing: '0.5px'
+                }}>Assets transmitted to beneficiary</span>
             </div>
         )
     }
 
+    const isExpired = timeLeft === 0
+    const accentColor = isExpired ? '#ef4444' : '#14b8a6'
+
     return (
-        <div className="space-y-6">
-            <div className="text-6xl md:text-8xl font-black font-mono tracking-tighter text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] bg-slate-950/40 py-8 px-4 rounded-3xl border border-slate-800/50">
-                {formatTime(timeLeft)}
+        <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
+            padding: '20px 0'
+        }}>
+            <div style={{
+                width: size, height: size, position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+                <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+                        stroke="rgba(255,255,255,0.04)" strokeWidth={strokeWidth} />
+                    <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+                        stroke={accentColor} strokeWidth={strokeWidth}
+                        strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        style={{ transition: 'stroke-dashoffset 1s ease', filter: `drop-shadow(0 0 6px ${accentColor}50)` }} />
+                </svg>
+                <div style={{
+                    position: 'absolute', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: '2px'
+                }}>
+                    <span style={{
+                        fontSize: '10px', color: '#64748b', fontWeight: 700,
+                        textTransform: 'uppercase', letterSpacing: '1px'
+                    }}>{isExpired ? 'Expired' : 'Time Left'}</span>
+                    <span style={{
+                        fontSize: '22px', fontWeight: 900, fontFamily: "'Inter', monospace",
+                        color: isExpired ? '#ef4444' : '#f1f5f9',
+                        letterSpacing: '-0.5px'
+                    }}>{formatTime(timeLeft)}</span>
+                </div>
             </div>
-            <div className="flex flex-col items-center gap-2">
-                {timeLeft === 0 ? (
-                    <div className="flex items-center gap-2 text-rose-500 font-bold animate-pulse">
-                        <span className="text-xl">⚠️</span> SECURITY TIMER EXPIRED
-                    </div>
+
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                fontSize: '12px', fontWeight: 600
+            }}>
+                {isExpired ? (
+                    <>
+                        <AlertTriangle style={{ width: 14, height: 14, color: '#ef4444' }} />
+                        <span style={{ color: '#ef4444' }}>Security timer expired — vault is claimable</span>
+                    </>
                 ) : (
-                    <div className="flex items-center gap-3 text-slate-500 font-bold text-sm tracking-wide uppercase">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-                        Next Heartbeat deadline approaching
-                    </div>
+                    <>
+                        <Clock style={{ width: 14, height: 14, color: '#3b82f6' }} />
+                        <span style={{ color: '#94a3b8' }}>Heartbeat deadline approaching</span>
+                    </>
                 )}
             </div>
         </div>

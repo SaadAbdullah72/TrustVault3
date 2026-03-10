@@ -25,13 +25,7 @@ export default function App() {
   return (
     <WalletProvider manager={walletManager}>
       <SnackbarProvider maxSnack={3}>
-        <div style={{
-          minHeight: '100vh',
-          backgroundColor: '#0f172a',
-          color: '#fff'
-        }}>
-          <VaultPage />
-        </div>
+        <VaultPage />
       </SnackbarProvider>
     </WalletProvider>
   )
