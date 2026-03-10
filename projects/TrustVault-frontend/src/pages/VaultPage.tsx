@@ -177,6 +177,7 @@ export default function VaultPage() {
             return () => clearInterval(interval)
         } else {
             setClaimableVaults([])
+            return undefined
         }
     }, [activeAddress, scanForClaimableVaults])
 
@@ -499,10 +500,10 @@ export default function VaultPage() {
                         <button
                             onClick={() => wallets[0]?.connect()}
                             className="connect-btn"
+                            disabled={loading}
                         >
                             <Wallet className="connect-btn-icon" />
-                            <span>Connect Wallet</span>
-                            <ArrowRight className="connect-btn-arrow" />
+                            <span>{loading ? 'Connecting...' : 'Connect Wallet'}</span>
                         </button>
 
                         <p className="connect-footer">
@@ -843,16 +844,28 @@ export default function VaultPage() {
 
                         {/* ===== TABS ===== */}
                         <div className="wallet-tabs">
-                            <button className={`wallet-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+                            <button
+                                className={`wallet-tab ${activeTab === 'overview' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('overview')}
+                            >
                                 Overview
                             </button>
-                            <button className={`wallet-tab ${activeTab === 'card' ? 'active' : ''}`} onClick={() => setActiveTab('card')}>
+                            <button
+                                className={`wallet-tab ${activeTab === 'card' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('card')}
+                            >
                                 Card
                             </button>
-                            <button className={`wallet-tab ${activeTab === 'actions' ? 'active' : ''}`} onClick={() => setActiveTab('actions')}>
+                            <button
+                                className={`wallet-tab ${activeTab === 'actions' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('actions')}
+                            >
                                 Timer
                             </button>
-                            <button className={`wallet-tab ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>
+                            <button
+                                className={`wallet-tab ${activeTab === 'details' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('details')}
+                            >
                                 Details
                             </button>
                         </div>

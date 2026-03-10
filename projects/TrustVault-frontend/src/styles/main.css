@@ -2398,107 +2398,211 @@ body {
 }
 
 /* ========================================
-   CARD TAB SHOWCASE
+   WALLET MAIN CONTENT
    ======================================== */
-
-.card-tab-showcase {
+.wallet-main-content {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    height: 100%;
 }
 
-.card-tab-image-wrap {
-    position: relative;
-    perspective: 600px;
+/* ========== BALANCE SECTION ========== */
+.balance-section {
+    padding: 32px 24px 24px;
+    background: linear-gradient(to bottom, rgba(45, 212, 191, 0.05), transparent);
+    text-align: center;
 }
 
-.card-tab-reflection {
-    position: absolute;
-    bottom: -30px;
-    left: 10%;
-    right: 10%;
-    height: 60px;
-    background: linear-gradient(to bottom, rgba(45, 212, 191, 0.08), transparent);
-    filter: blur(12px);
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.card-tab-image {
-    width: 100%;
-    border-radius: 14px;
-    box-shadow:
-        0 16px 48px rgba(0, 0, 0, 0.5),
-        0 0 20px rgba(45, 212, 191, 0.1);
-    transition: transform 0.5s ease;
-    animation: cardTabFloat 8s ease-in-out infinite;
-}
-
-@keyframes cardTabFloat {
-
-    0%,
-    100% {
-        transform: rotateY(0deg) rotateX(0deg);
-    }
-
-    25% {
-        transform: rotateY(4deg) rotateX(2deg);
-    }
-
-    50% {
-        transform: rotateY(-3deg) rotateX(-1deg);
-    }
-
-    75% {
-        transform: rotateY(2deg) rotateX(1deg);
-    }
-}
-
-.card-tab-image-wrap:hover .card-tab-image {
-    transform: rotateY(8deg) rotateX(3deg) scale(1.02);
-}
-
-.card-tab-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.card-tab-info-row {
+.balance-label {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-primary);
-}
-
-.card-tab-info-row:last-child {
-    border-bottom: none;
-}
-
-.card-tab-info-label {
+    justify-content: center;
+    gap: 8px;
     font-size: 13px;
     color: var(--text-muted);
     font-weight: 500;
+    margin-bottom: 8px;
 }
 
-.card-tab-info-value {
-    font-size: 13px;
-    font-weight: 600;
+.balance-eye-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.balance-eye-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.balance-amount {
+    font-size: 36px;
+    font-weight: 800;
     color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -1px;
 }
 
-.card-tab-info-value.card-balance {
+.balance-currency {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-left: 8px;
+    font-weight: 600;
+}
+
+/* ========== ROLE BADGES & STATUS ========== */
+.role-badges {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.role-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.role-badge.owner {
+    color: var(--accent-violet-light);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.role-badge.beneficiary {
     color: var(--accent-emerald);
+    border-color: rgba(45, 212, 191, 0.2);
+}
+
+.role-badge-icon {
+    width: 12px;
+    height: 12px;
+}
+
+.vault-status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
     font-weight: 700;
 }
 
-.card-tab-info-value.text-green {
+.vault-status-pill.secured {
+    background: rgba(20, 184, 166, 0.1);
     color: var(--accent-emerald);
 }
 
-.card-tab-info-value.text-red {
+.vault-status-pill.expired {
+    background: rgba(239, 68, 68, 0.1);
     color: var(--accent-red);
+}
+
+.vault-status-pill.released {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-blue);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+}
+
+/* ========== QUICK ACTIONS ========== */
+.quick-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 24px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 64px;
+}
+
+.quick-action-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.quick-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.quick-action-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-primary);
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.quick-action-circle.heartbeat {
+    color: var(--accent-red);
+}
+
+.quick-action-circle.withdraw {
+    color: var(--accent-blue);
+}
+
+.quick-action-circle.claim {
+    color: var(--accent-emerald);
+}
+
+.quick-action-circle.copy {
+    color: var(--text-secondary);
+}
+
+.quick-action-circle.scan {
+    color: var(--accent-amber);
+}
+
+.quick-action-btn:hover .quick-action-circle {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(45, 212, 191, 0.3);
+}
+
+.quick-action-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.quick-action-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* ========================================
@@ -2509,6 +2613,45 @@ body {
     min-height: auto !important;
     padding: 32px 24px !important;
     max-height: none !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+}
+
+.connect-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--accent-emerald), var(--accent-cyan));
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(20, 184, 166, 0.3);
+}
+
+.connect-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+    filter: brightness(1.1);
+}
+
+.connect-btn:active {
+    transform: translateY(0);
+}
+
+.connect-btn-icon {
+    width: 18px;
+    height: 18px;
 }
 
 /* ========== SECTION LAYOUT ========== */
@@ -2653,7 +2796,9 @@ body {
 }
 
 .tab-pane {
-    animation: fadeIn 0.3s ease-out forwards;
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    padding: 16px;
+    min-height: 200px;
 }
 
 @keyframes fadeIn {
