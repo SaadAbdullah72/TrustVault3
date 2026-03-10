@@ -256,11 +256,14 @@ export default function VaultPage() {
                 return
             }
 
+            setTxId('Step 1/2: Deploying Vault...')
             const appId = await deployVault(activeAddress, transactionSigner)
             if (!appId) throw new Error('Deployment failed')
 
-            setTxId('Vault Created! Finalizing setup (4s)...')
-            await new Promise(resolve => setTimeout(resolve, 4000))
+            setTxId('Step 1/2 Complete! Finalizing (3s)...')
+            await new Promise(resolve => setTimeout(resolve, 3000))
+
+            setTxId('Step 2/2: Setting up & Funding...')
 
             const appAddress = getAppAddress(appId)
             const suggestedParams = await algodClient.getTransactionParams().do()
@@ -1007,8 +1010,11 @@ export default function VaultPage() {
                             <div className="overlay-spinner">
                                 <RefreshCw className="spinning overlay-icon" />
                             </div>
-                            <h3>Waiting for Wallet</h3>
-                            <p>Please check your Pera Wallet to sign the transaction.</p>
+                            <h3>{txId?.includes('Step') ? 'Creating Vault' : 'Waiting for Wallet'}</h3>
+                            <p>{txId ? txId : 'Please check your Pera Wallet to sign and proceed.'}</p>
+                            <div className="overlay-hint">
+                                Keep the wallet app open until transaction is confirmed.
+                            </div>
                         </div>
                     </div>
                 )}
