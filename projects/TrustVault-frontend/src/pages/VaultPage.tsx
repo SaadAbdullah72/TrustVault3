@@ -379,6 +379,7 @@ export default function VaultPage() {
         setLoading(true)
         setError('')
         try {
+            await new Promise(resolve => setTimeout(resolve, 500))
             const id = await callWithdraw(selectedAppId, amount, activeAddress, transactionSigner)
             setTxId(`Funds Withdrawn! TX: ${id}`)
             await loadVaultState()

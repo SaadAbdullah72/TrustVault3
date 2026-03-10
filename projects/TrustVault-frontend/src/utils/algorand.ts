@@ -242,6 +242,7 @@ export const deployVault = async (sender: string, signer: any) => {
             numLocalByteSlices: 0,
             numGlobalInts: 3, // LockDuration, LastHeartbeat, Released
             numGlobalByteSlices: 2, // Owner, Beneficiary
+            note: new TextEncoder().encode(`TrustVault:deploy:${Date.now()}`)
         })
 
         // Use ATC for deployment as it's more reliable with Pera
