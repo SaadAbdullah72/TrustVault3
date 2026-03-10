@@ -274,15 +274,8 @@ export const deployVault = async (sender: string, signer: any) => {
         // We must wrap the transaction in a group, even if it's single
         algosdk.assignGroupID([txn])
 
-        // Encode transaction to Uint8Array for the wallet provider signature
-        const encodedTxn = txn.toByte()
-
-        // The activeWallet expects an array of encoded transactions
-        if (!signer.signTransactions) {
-            throw new Error('Wallet provider does not support signTransactions')
-        }
-
-        const signedTxns = await signer.signTransactions([encodedTxn])
+        // The signer function expects array of txns and array of indices to sign
+        const signedTxns = await signer([txn], [0])
 
         console.log('[Deploy] Signature received! Sending to Algod network...')
 

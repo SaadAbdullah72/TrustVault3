@@ -301,7 +301,7 @@ export default function VaultPage() {
             }
 
             setTxId('Step 1/2: Deploying Vault...')
-            const appId = await deployVault(activeAddress, activeWallet)
+            const appId = await deployVault(activeAddress, transactionSigner)
             if (!appId) throw new Error('Deployment failed')
 
             setTxId('Step 1/2 Complete! Finalizing (3s)...')
@@ -350,16 +350,8 @@ export default function VaultPage() {
             const txns = [bootstrapTxn, payTxn]
             algosdk.assignGroupID(txns)
 
-            // Encode for the wallet provider
-            const encodedTxns = txns.map(tx => tx.toByte())
-
-            const activeWalletAny = activeWallet as any
-            if (!activeWalletAny || !activeWalletAny.signTransactions) {
-                throw new Error('Wallet provider does not support signTransactions')
-            }
-
             // Request signature
-            const signedTxns = await activeWalletAny.signTransactions(encodedTxns)
+            const signedTxns = await transactionSigner(txns, [0, 1])
 
             // Send raw transactions
             await algodClient.sendRawTransaction(signedTxns).do()
