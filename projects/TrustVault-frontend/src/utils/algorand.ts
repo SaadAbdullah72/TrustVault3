@@ -62,15 +62,17 @@ export const discoverVaults = async (address: string): Promise<bigint[]> => {
             const cached = localStorage.getItem(`trustvault_ids_${address}`)
             if (cached) {
                 try {
-                    JSON.parse(cached).forEach((id: string) => foundIds.add(id))
+                    const parsed = JSON.parse(cached)
+                    Array.isArray(parsed) && parsed.forEach((id: string) => foundIds.add(id))
                 } catch (e) { /* ignore */ }
             }
         }
 
-        console.log(`Discovery for ${address}: Found ${foundIds.size} vault(s)`)
-        return Array.from(foundIds).map(id => BigInt(id))
+        const scanResults = Array.from(foundIds).map(id => BigInt(id))
+        console.log(`Discovery for ${address}: Found ${scanResults.length} vault(s)`)
+        return scanResults.sort((a, b) => Number(b - a)) // Latest first
     } catch (error) {
-        console.error('Error discovering vaults:', error)
+        console.error('Discovery engine failed:', error)
         return []
     }
 }

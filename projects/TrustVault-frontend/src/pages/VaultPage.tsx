@@ -63,22 +63,16 @@ export default function VaultPage() {
     // Selection state
     const [selectedAppId, setSelectedAppId] = useState<bigint | null>(null)
     const [userVaults, setUserVaults] = useState<bigint[]>([])
+    const [vaultRoles, setVaultRoles] = useState<Record<string, 'owner' | 'beneficiary'>>({})
+    const [showCreateForm, setShowCreateForm] = useState(false)
 
-    // Load from cache on connection
+    // Load available vaults on connect
     useEffect(() => {
-        if (activeAddress && typeof window !== 'undefined') {
-            const cached = localStorage.getItem(`trustvault_ids_${activeAddress}`)
-            if (cached) {
-                try {
-                    const ids = JSON.parse(cached).map((id: string) => BigInt(id))
-                    setUserVaults(ids)
-                    if (ids.length > 0) setSelectedAppId(ids[0])
-                } catch (e) {
-                    console.error('Failed to parse cached vaults:', e)
-                }
-            } else {
-                setUserVaults([])
-            }
+        if (activeAddress) {
+            loadUserVaults()
+        } else {
+            setUserVaults([])
+            setSelectedAppId(null)
         }
     }, [activeAddress])
 
@@ -94,9 +88,6 @@ export default function VaultPage() {
     const [beneficiaryInput, setBeneficiaryInput] = useState('')
     const [lockDurationInput, setLockDurationInput] = useState('60')
     const [depositInput, setDepositInput] = useState('1')
-    const [showCreateForm, setShowCreateForm] = useState(false)
-    const [importIdInput, setImportIdInput] = useState('')
-    const [showImportForm, setShowImportForm] = useState(false)
 
     // Beneficiary auto-discovery state
     const [claimableVaults, setClaimableVaults] = useState<ClaimableVault[]>([])
@@ -421,28 +412,43 @@ export default function VaultPage() {
     const handleScanForClaims = async () => {
         if (!activeAddress) return
         setLoading(true)
-        setTxId('Searching for vaults...')
+        setDiscovering(true)
+        setTxId('Scanning blockchain & cloud...')
         setError('')
         try {
             const ids = await discoverVaults(activeAddress)
-            if (ids.length > 0) {
-                // Sort by ID descending (latest first) and take top 5
-                const sortedIds = [...ids].sort((a, b) => Number(b - a))
-                const latestFive = sortedIds.slice(0, 5)
 
-                const unique = Array.from(new Set([...userVaults, ...latestFive]))
+            // Fetch roles for all found vaults to distinguish Owner vs Beneficiary
+            const roles: Record<string, 'owner' | 'beneficiary'> = { ...vaultRoles }
+            const states = await Promise.all(ids.map(id => fetchVaultState(id).catch(() => null)))
+
+            ids.forEach((id, idx) => {
+                const state = states[idx]
+                if (state) {
+                    roles[id.toString()] = state.owner.toUpperCase() === activeAddress.toUpperCase() ? 'owner' : 'beneficiary'
+                }
+            })
+            setVaultRoles(roles)
+
+            if (ids.length > 0) {
+                // Remove duplicates and maintain latest-first sort
+                const unique = Array.from(new Set([...userVaults, ...ids])).sort((a, b) => Number(b - a))
                 setUserVaults(unique)
                 localStorage.setItem(`trustvault_ids_${activeAddress}`, JSON.stringify(unique.map(i => i.toString())))
-                setSelectedAppId(latestFive[0])
-                setTxId(`Scan complete! Loaded latest ${latestFive.length} vault(s).`)
+
+                if (!selectedAppId) {
+                    setSelectedAppId(ids[0])
+                }
+                setTxId(`Scan complete! Found ${ids.length} vault(s).`)
             } else {
-                setTxId('No vaults found.')
+                setTxId('No vaults found on this account.')
             }
             await scanForClaimableVaults()
         } catch (e: any) {
             setError(e.message || 'Scan failed')
         } finally {
             setLoading(false)
+            setDiscovering(false)
         }
     }
 
@@ -665,7 +671,14 @@ export default function VaultPage() {
                                             <Shield className="vault-dropdown-item-icon" />
                                         </div>
                                         <div className="vault-dropdown-item-info">
-                                            <span className="vault-dropdown-item-name">Vault #{id.toString()}</span>
+                                            <div className="vault-dropdown-item-header">
+                                                <span className="vault-dropdown-item-name">Vault #{id.toString()}</span>
+                                                {vaultRoles[id.toString()] && (
+                                                    <span className={`vault-dropdown-item-badge ${vaultRoles[id.toString()]}`}>
+                                                        {vaultRoles[id.toString()]}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <span className="vault-dropdown-item-addr">{formatAddr(getAppAddress(id))}</span>
                                         </div>
                                         {selectedAppId === id && <CheckCircle className="vault-dropdown-item-check" />}
@@ -680,13 +693,13 @@ export default function VaultPage() {
                                 </div>
                             ))}
                             <div className="vault-dropdown-actions">
-                                <button className="vault-dropdown-action-btn" onClick={() => { setShowCreateForm(true); setShowImportForm(false); setShowVaultSelector(false) }}>
+                                <button className="vault-dropdown-action-btn" onClick={() => { setShowCreateForm(true); setShowVaultSelector(false) }}>
                                     <Plus className="vault-dropdown-action-icon" />
                                     <span>Create Vault</span>
                                 </button>
-                                <button className="vault-dropdown-action-btn" onClick={() => { setShowImportForm(true); setShowCreateForm(false); setShowVaultSelector(false) }}>
-                                    <Download className="vault-dropdown-action-icon" />
-                                    <span>Import Vault</span>
+                                <button className="vault-dropdown-action-btn scan" onClick={handleScanForClaims} disabled={discovering}>
+                                    <RefreshCw className={`vault-dropdown-action-icon ${discovering ? 'spinning' : ''}`} />
+                                    <span>Full Scan</span>
                                 </button>
                             </div>
                         </div>
@@ -799,37 +812,7 @@ export default function VaultPage() {
                     </div>
                 )}
 
-                {showImportForm && (
-                    <div className="wallet-form-overlay">
-                        <div className="wallet-form-card">
-                            <div className="wallet-form-header">
-                                <button onClick={() => setShowImportForm(false)} className="wallet-form-back">
-                                    <ChevronLeft />
-                                </button>
-                                <span className="wallet-form-title">Import Vault</span>
-                                <div style={{ width: 24 }} />
-                            </div>
-                            <div className="wallet-form-body">
-                                <div className="wallet-input-group">
-                                    <label className="wallet-input-label">
-                                        <Search className="wallet-label-icon" />
-                                        Application ID
-                                    </label>
-                                    <input
-                                        value={importIdInput}
-                                        onChange={(e) => setImportIdInput(e.target.value)}
-                                        className="wallet-input"
-                                        placeholder="Enter App ID..."
-                                    />
-                                </div>
-                                <button onClick={handleImportVault} className="wallet-form-submit">
-                                    <Download className="submit-icon" />
-                                    <span>Import Vault</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* ======= IMPORT FORM REMOVED (UNIFIED WITH SCAN) ======= */}
 
                 {/* ======= MAIN CONTENT ======= */}
                 {discovering ? (
