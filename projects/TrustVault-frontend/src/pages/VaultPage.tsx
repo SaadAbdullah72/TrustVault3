@@ -348,9 +348,10 @@ export default function VaultPage() {
         if (!activeAddress || !selectedAppId) return
         setLoading(true)
         setError('')
+        setTxId('Step 1/1: Claiming Inheritance funds...')
         try {
             const id = await callAutoRelease(selectedAppId, activeAddress, transactionSigner)
-            setTxId(`Inheritance claimed! TX: ${id}`)
+            setTxId(`Inheritance claimed successfully! TX: ${id}`)
             await loadVaultState()
         } catch (e: any) {
             setError(e.message || 'Claim failed')
@@ -412,9 +413,10 @@ export default function VaultPage() {
         if (!activeAddress) return
         setLoading(true)
         setError('')
+        setTxId('Step 1/1: Claiming Inheritance funds...')
         try {
             const id = await callAutoRelease(vaultAppId, activeAddress, transactionSigner)
-            setTxId(`Inheritance funds claimed! TX: ${id}`)
+            setTxId(`Inheritance funds claimed successfully! TX: ${id}`)
             setClaimableVaults(prev => prev.filter(v => v.appId !== vaultAppId))
             await scanForClaimableVaults()
         } catch (e: any) {
