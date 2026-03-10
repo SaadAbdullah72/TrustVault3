@@ -2685,8 +2685,10 @@ body {
 .claim-banner {
     position: fixed;
     bottom: 24px;
-    left: 16px;
-    right: 16px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: calc(100% - 32px);
+    max-width: calc(var(--wallet-width) - 32px);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2721,12 +2723,12 @@ body {
 @keyframes slideInUp {
     from {
         opacity: 0;
-        transform: translateY(100px);
+        transform: translate(-50%, 100px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate(-50%, 0);
     }
 }
 
@@ -3197,4 +3199,49 @@ body {
 .detail-copy-icon {
     width: 14px;
     height: 14px;
+}
+
+/* ========== DESKTOP COMPATIBILITY ========== */
+@media (min-width: 768px) {
+    :root {
+        --wallet-width: 900px;
+    }
+
+    .wallet-container {
+        max-height: 85vh;
+        border-radius: 24px;
+    }
+
+    .dashboard-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        padding: 0 32px 40px;
+        align-items: start;
+    }
+
+    .section-header {
+        grid-column: 1 / -1;
+        margin: 12px 0 0;
+    }
+
+    .section-card {
+        margin: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .balance-section,
+    .quick-actions,
+    .wallet-tabs {
+        padding: 0 32px;
+    }
+
+    .claim-banner {
+        bottom: 32px;
+        width: calc(100% - 64px);
+        max-width: calc(var(--wallet-width) - 64px);
+    }
 }
