@@ -57,7 +57,7 @@ export const getVaultsByBeneficiary = async (beneficiaryAddress: string): Promis
         const { data, error } = await supabase
             .from('vault_registry')
             .select('vault_id')
-            .eq('beneficiary_address', beneficiaryAddress.toUpperCase())
+            .ilike('beneficiary_address', beneficiaryAddress)
 
         if (error) {
             console.error('Supabase query error:', error)

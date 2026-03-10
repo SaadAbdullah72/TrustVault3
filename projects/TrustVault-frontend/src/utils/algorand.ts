@@ -88,11 +88,17 @@ export interface ClaimableVault {
 export const discoverBeneficiaryVaults = async (address: string): Promise<ClaimableVault[]> => {
     try {
         const foundIds = new Set<string>()
+        console.log(`[BeneficiaryScan] Starting scan for ${address.slice(0, 8)}...`)
 
         // Run ALL discovery methods in parallel for speed
         const [supabaseIds, noteTxs, involvedTxs] = await Promise.all([
             // Method 0: Supabase cloud registry (PRIMARY — cross-device)
-            import('./supabase').then(mod => mod.getVaultsByBeneficiary(address)).catch(() => [] as string[]),
+            // Query with BOTH cases to handle any casing mismatches
+            import('./supabase').then(async (mod) => {
+                const upper = await mod.getVaultsByBeneficiary(address.toUpperCase()).catch(() => [] as string[])
+                const original = await mod.getVaultsByBeneficiary(address).catch(() => [] as string[])
+                return [...new Set([...upper, ...original])]
+            }).catch(() => [] as string[]),
 
             // Method 1: Note-prefix search (blockchain — finds bootstrap txns)
             indexerClient.searchForTransactions()
@@ -108,21 +114,23 @@ export const discoverBeneficiaryVaults = async (address: string): Promise<Claima
 
         // Add Supabase results
         supabaseIds.forEach(id => foundIds.add(id))
-        if (supabaseIds.length > 0) console.log(`  Supabase: found ${supabaseIds.length} vault(s)`)
+        console.log(`[BeneficiaryScan] Supabase: ${supabaseIds.length} vault(s)`)
 
         // Add note-prefix results
         const noteTransactions = (noteTxs as any).transactions || []
         noteTransactions.forEach((tx: any) => {
             const appId = tx['application-transaction']?.['application-id']
-            if (appId) foundIds.add(appId.toString())
+            if (appId && appId > 0) foundIds.add(appId.toString())
         })
+        console.log(`[BeneficiaryScan] Note-prefix: ${noteTransactions.length} tx(s)`)
 
         // Add address search results
         const addrTransactions = (involvedTxs as any).transactions || []
         addrTransactions.forEach((tx: any) => {
             const appId = tx['application-transaction']?.['application-id']
-            if (appId) foundIds.add(appId.toString())
+            if (appId && appId > 0) foundIds.add(appId.toString())
         })
+        console.log(`[BeneficiaryScan] Address-involved: ${addrTransactions.length} tx(s)`)
 
         // Method 3: localStorage fallback
         if (typeof window !== 'undefined') {
@@ -131,6 +139,7 @@ export const discoverBeneficiaryVaults = async (address: string): Promise<Claima
                 if (registry) {
                     const map: Record<string, string[]> = JSON.parse(registry)
                         ; (map[address.toUpperCase()] || []).forEach(id => foundIds.add(id))
+                        ; (map[address] || []).forEach(id => foundIds.add(id))
                 }
             } catch (e) { /* ignore */ }
             try {
@@ -139,13 +148,13 @@ export const discoverBeneficiaryVaults = async (address: string): Promise<Claima
             } catch (e) { /* ignore */ }
         }
 
-        const allIds = Array.from(foundIds).map(id => BigInt(id))
+        const allIds = Array.from(foundIds).filter(id => id && id !== '0').map(id => BigInt(id))
         if (allIds.length === 0) {
-            console.log(`Beneficiary scan for ${address.slice(0, 8)}...: No vaults found`)
+            console.log(`[BeneficiaryScan] No candidate vaults found at all`)
             return []
         }
 
-        console.log(`Beneficiary scan: Checking ${allIds.length} vault(s)...`)
+        console.log(`[BeneficiaryScan] Checking ${allIds.length} candidate vault(s)...`)
 
         // Fetch ALL vault states in parallel
         const states = await Promise.all(
@@ -156,25 +165,26 @@ export const discoverBeneficiaryVaults = async (address: string): Promise<Claima
         const results: ClaimableVault[] = []
 
         states.forEach((state, idx) => {
-            if (!state) return
+            if (!state) {
+                console.log(`[BeneficiaryScan] Vault #${allIds[idx]}: state fetch failed (skipped)`)
+                return
+            }
 
             const beneficiaryMatch = (state.beneficiary || '').toUpperCase() === address.toUpperCase()
             const isExpired = now >= (state.lastHeartbeat + state.lockDuration)
             const notReleased = !state.released
 
-            if (beneficiaryMatch) {
-                console.log(`  Vault #${allIds[idx]}: BENEFICIARY ✓ expired=${isExpired ? 'YES' : 'no'} released=${state.released ? 'YES' : 'no'}`)
-            }
+            console.log(`[BeneficiaryScan] Vault #${allIds[idx]}: beneficiary=${beneficiaryMatch ? '✓' : '✗'} expired=${isExpired ? '✓' : '✗'} released=${state.released ? 'YES' : 'no'}`)
 
             if (beneficiaryMatch && isExpired && notReleased) {
                 results.push({ appId: allIds[idx], state })
             }
         })
 
-        console.log(`Beneficiary Discovery: ${results.length} claimable vault(s)!`)
+        console.log(`[BeneficiaryScan] ✅ ${results.length} CLAIMABLE vault(s)!`)
         return results
     } catch (error) {
-        console.error('Error discovering beneficiary vaults:', error)
+        console.error('[BeneficiaryScan] Fatal error:', error)
         return []
     }
 }
