@@ -52,8 +52,8 @@
     --radius-xl: 20px;
     --radius-full: 9999px;
 
-    --wallet-width: 420px;
-    --wallet-max-height: 640px;
+    --wallet-width: min(420px, 95vw);
+    --wallet-max-height: 90vh;
 }
 
 * {
@@ -1808,6 +1808,10 @@ body {
     .truncate-text {
         max-width: 130px;
     }
+
+    .connect-title {
+        font-size: 24px;
+    }
 }
 
 .detail-value.text-green {
@@ -1979,9 +1983,8 @@ body {
 .toast-text {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
     word-break: break-all;
+    line-height: 1.4;
 }
 
 .toast-close {
@@ -2012,27 +2015,22 @@ body {
 /* ========== RESPONSIVE ========== */
 @media (max-width: 480px) {
     .wallet-shell {
-        padding: 0;
-        align-items: stretch;
+        padding: 8px;
     }
 
     .wallet-container {
         width: 100%;
-        max-height: 100vh;
-        border-radius: 0;
-        border: none;
+        max-height: 95vh;
+        border-radius: var(--radius-lg);
+    }
+
+    .wallet-toast {
+        font-size: 11px;
+        padding: 10px 12px;
     }
 
     .balance-amount {
         font-size: 32px;
-    }
-
-    .quick-actions {
-        gap: 12px;
-    }
-
-    .connect-features {
-        gap: 16px;
     }
 }
 
