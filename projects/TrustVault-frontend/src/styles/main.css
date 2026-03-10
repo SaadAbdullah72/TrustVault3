@@ -2412,6 +2412,104 @@ body {
     max-height: none !important;
 }
 
+/* ========== SECTION LAYOUT ========== */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 24px 24px 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.section-header-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--accent-emerald);
+}
+
+.section-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    margin: 0 24px 24px;
+    padding: 16px;
+}
+
+/* ========== CLAIM BANNER ========== */
+.claim-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(6, 182, 212, 0.1));
+    border: 1px solid var(--accent-emerald);
+    border-radius: var(--radius-lg);
+    margin: 24px 24px 0;
+    padding: 16px;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.claim-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.claim-bell-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-emerald);
+}
+
+.claim-banner-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.claim-banner-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.claim-banner-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.claim-banner-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--accent-emerald);
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.claim-banner-btn:hover:not(:disabled) {
+    background: var(--accent-cyan);
+    transform: translateY(-1px);
+}
+
+.claim-banner-btn-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.claim-banner-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
 @media (max-width: 480px) {
     .card-promo-wrapper {
         width: 260px;

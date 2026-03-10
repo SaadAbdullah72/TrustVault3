@@ -752,39 +752,7 @@ export default function VaultPage() {
                     </div>
                 ) : selectedAppId && vaultState ? (
                     <div className="wallet-main-content">
-                        {/* ===== VIRTUAL CARD DISPLAY ===== */}
-                        <div className="wallet-card-display">
-                            <div className="wallet-card-inner">
-                                <div className="wallet-card-bg" />
-                                <div className="wallet-card-content">
-                                    <div className="wallet-card-top">
-                                        <img src="/logo.svg" alt="TV" className="wallet-card-logo" />
-                                        <span className="wallet-card-brand">TrustVault<sup>3</sup></span>
-                                        <span className="wallet-card-type">VIRTUAL</span>
-                                    </div>
-                                    <div className="wallet-card-chip">
-                                        <div className="chip-line" />
-                                        <div className="chip-line" />
-                                        <div className="chip-line" />
-                                    </div>
-                                    <div className="wallet-card-number">
-                                        {selectedAppId ? `${selectedAppId.toString().slice(0, 4)}  ••••  ••••  ${selectedAppId.toString().slice(-4)}` : '•••• •••• •••• ••••'}
-                                    </div>
-                                    <div className="wallet-card-bottom">
-                                        <div className="wallet-card-holder">
-                                            <span className="wallet-card-holder-label">HOLDER</span>
-                                            <span className="wallet-card-holder-name">{activeAddress ? formatAddr(activeAddress) : 'VAULT HOLDER'}</span>
-                                        </div>
-                                        <div className="wallet-card-balance-mini">
-                                            <span className="wallet-card-bal-label">BALANCE</span>
-                                            <span className="wallet-card-bal-value">{showBalanceHidden ? '••••' : vaultBalance.toFixed(2)} A</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ===== BALANCE DISPLAY (Like MetaMask) ===== */}
+                        {/* ===== BALANCE + STATUS ===== */}
                         <div className="balance-section">
                             <div className="balance-label">
                                 <span>Vault Balance</span>
@@ -796,13 +764,27 @@ export default function VaultPage() {
                                 {showBalanceHidden ? '••••••' : vaultBalance.toFixed(4)}
                                 <span className="balance-currency">ALGO</span>
                             </div>
-                            <div className={`vault-status-pill ${vaultState.released ? 'released' : isExpired ? 'expired' : 'secured'}`}>
-                                <div className="status-dot" />
-                                <span>{vaultState.released ? 'Released' : isExpired ? 'Timer Expired' : 'Secured'}</span>
+                            <div className="role-badges" style={{ justifyContent: 'center', marginTop: 8 }}>
+                                {isOwner && (
+                                    <div className="role-badge owner">
+                                        <Shield className="role-badge-icon" />
+                                        <span>Owner</span>
+                                    </div>
+                                )}
+                                {isBeneficiary && (
+                                    <div className="role-badge beneficiary">
+                                        <Wallet className="role-badge-icon" />
+                                        <span>Beneficiary</span>
+                                    </div>
+                                )}
+                                <div className={`vault-status-pill ${vaultState.released ? 'released' : isExpired ? 'expired' : 'secured'}`}>
+                                    <div className="status-dot" />
+                                    <span>{vaultState.released ? 'Released' : isExpired ? 'Timer Expired' : 'Secured'}</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* ===== QUICK ACTIONS (Like MetaMask Send/Receive/Swap) ===== */}
+                        {/* ===== QUICK ACTIONS ===== */}
                         <div className="quick-actions">
                             {isOwner && !vaultState.released && (
                                 <>
@@ -842,201 +824,126 @@ export default function VaultPage() {
                             </button>
                         </div>
 
-                        {/* ===== TABS (Like wallet tabs) ===== */}
-                        <div className="wallet-tabs">
-                            <button className={`wallet-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-                                Overview
-                            </button>
-                            <button className={`wallet-tab ${activeTab === 'card' ? 'active' : ''}`} onClick={() => setActiveTab('card')}>
-                                Card
-                            </button>
-                            <button className={`wallet-tab ${activeTab === 'actions' ? 'active' : ''}`} onClick={() => setActiveTab('actions')}>
-                                Timer
-                            </button>
-                            <button className={`wallet-tab ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>
-                                Details
-                            </button>
+                        {/* ===== CLAIM BANNER ===== */}
+                        {isBeneficiary && canRelease && !vaultState.released && (
+                            <div className="claim-banner">
+                                <div className="claim-banner-left">
+                                    <Bell className="claim-bell-icon" />
+                                    <div className="claim-banner-text">
+                                        <span className="claim-banner-title">Inheritance Ready</span>
+                                        <span className="claim-banner-sub">Timer expired — claim your funds</span>
+                                    </div>
+                                </div>
+                                <button className="claim-banner-btn" onClick={handleClaim} disabled={loading}>
+                                    {loading ? <RefreshCw className="spinning claim-banner-btn-icon" /> : <Unlock className="claim-banner-btn-icon" />}
+                                    <span>Claim Now</span>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* ===== 3D VIRTUAL CARD ===== */}
+                        <div className="section-header">
+                            <CreditCard className="section-header-icon" />
+                            <span>Virtual Card</span>
+                        </div>
+                        <div className="card-tab-showcase">
+                            <div className="card-tab-image-wrap">
+                                <div className="card-tab-reflection" />
+                                <img src="/trustvault-card.png" alt="TrustVault Virtual Card" className="card-tab-image" />
+                            </div>
+                            <div className="card-tab-info">
+                                <div className="card-tab-info-row">
+                                    <span className="card-tab-info-label">Card Holder</span>
+                                    <span className="card-tab-info-value">{activeAddress ? formatAddr(activeAddress) : '-'}</span>
+                                </div>
+                                <div className="card-tab-info-row">
+                                    <span className="card-tab-info-label">Vault ID</span>
+                                    <span className="card-tab-info-value">#{selectedAppId?.toString()}</span>
+                                </div>
+                                <div className="card-tab-info-row">
+                                    <span className="card-tab-info-label">Available Balance</span>
+                                    <span className="card-tab-info-value card-balance">{showBalanceHidden ? '••••' : vaultBalance.toFixed(4)} ALGO</span>
+                                </div>
+                                <div className="card-tab-info-row">
+                                    <span className="card-tab-info-label">Card Status</span>
+                                    <span className={`card-tab-info-value ${vaultState.released ? 'text-red' : 'text-green'}`}>
+                                        {vaultState.released ? 'Inactive' : 'Active'}
+                                    </span>
+                                </div>
+                                <div className="card-tab-info-row">
+                                    <span className="card-tab-info-label">Card Type</span>
+                                    <span className="card-tab-info-value">Virtual • Algorand</span>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* ===== TAB CONTENT ===== */}
-                        <div className="tab-content">
-                            {activeTab === 'overview' && (
-                                <div className="tab-pane">
-                                    {/* Role badges */}
-                                    <div className="role-badges">
-                                        {isOwner && (
-                                            <div className="role-badge owner">
-                                                <Shield className="role-badge-icon" />
-                                                <span>Owner</span>
-                                            </div>
-                                        )}
-                                        {isBeneficiary && (
-                                            <div className="role-badge beneficiary">
-                                                <Wallet className="role-badge-icon" />
-                                                <span>Beneficiary</span>
-                                            </div>
-                                        )}
-                                    </div>
+                        {/* ===== TIMER / COUNTDOWN ===== */}
+                        <div className="section-header">
+                            <Clock className="section-header-icon" />
+                            <span>Security Timer</span>
+                        </div>
+                        <div className="section-card">
+                            <Countdown lastHeartbeat={vaultState.lastHeartbeat} lockDuration={vaultState.lockDuration} released={vaultState.released} />
+                        </div>
 
-                                    {/* Info rows (like tx list) */}
-                                    <div className="info-list">
-                                        <div className="info-row">
-                                            <div className="info-row-left">
-                                                <div className="info-row-icon-wrap vault-id-icon">
-                                                    <Activity className="info-row-icon" />
-                                                </div>
-                                                <div className="info-row-text">
-                                                    <span className="info-row-label">Vault ID</span>
-                                                    <span className="info-row-value">#{selectedAppId.toString()}</span>
-                                                </div>
-                                            </div>
-                                            <button className="info-row-action" onClick={() => copyToClipboard(selectedAppId.toString())}>
-                                                <Copy className="info-row-action-icon" />
-                                            </button>
-                                        </div>
-                                        <div className="info-row">
-                                            <div className="info-row-left">
-                                                <div className="info-row-icon-wrap balance-icon">
-                                                    <Wallet className="info-row-icon" />
-                                                </div>
-                                                <div className="info-row-text">
-                                                    <span className="info-row-label">Balance</span>
-                                                    <span className="info-row-value">{vaultBalance.toFixed(4)} ALGO</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="info-row">
-                                            <div className="info-row-left">
-                                                <div className="info-row-icon-wrap timer-icon">
-                                                    <Clock className="info-row-icon" />
-                                                </div>
-                                                <div className="info-row-text">
-                                                    <span className="info-row-label">Lock Duration</span>
-                                                    <span className="info-row-value">
-                                                        {vaultState.lockDuration >= 3600
-                                                            ? `${Math.floor(vaultState.lockDuration / 3600)}h ${Math.floor((vaultState.lockDuration % 3600) / 60)}m`
-                                                            : `${Math.floor(vaultState.lockDuration / 60)}m ${vaultState.lockDuration % 60}s`
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="info-row">
-                                            <div className="info-row-left">
-                                                <div className="info-row-icon-wrap status-icon">
-                                                    {vaultState.released ? <Unlock className="info-row-icon" /> : <Lock className="info-row-icon" />}
-                                                </div>
-                                                <div className="info-row-text">
-                                                    <span className="info-row-label">Status</span>
-                                                    <span className={`info-row-value ${vaultState.released ? 'text-green' : isExpired ? 'text-red' : 'text-blue'}`}>
-                                                        {vaultState.released ? 'Released' : isExpired ? 'Expired — Claimable' : 'Active & Secured'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
+                        {/* ===== VAULT DETAILS ===== */}
+                        <div className="section-header">
+                            <Activity className="section-header-icon" />
+                            <span>Vault Details</span>
+                        </div>
+                        <div className="section-card">
+                            <div className="detail-list">
+                                <div className="detail-item">
+                                    <span className="detail-label">Vault Address</span>
+                                    <div className="detail-value-row">
+                                        <span className="detail-value mono">{formatAddr(vaultAddress)}</span>
+                                        <button className="detail-copy" onClick={() => copyToClipboard(vaultAddress)}>
+                                            <Copy className="detail-copy-icon" />
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-
-                            {activeTab === 'card' && (
-                                <div className="tab-pane">
-                                    <div className="card-tab-showcase">
-                                        <div className="card-tab-image-wrap">
-                                            <div className="card-tab-reflection" />
-                                            <img src="/trustvault-card.png" alt="TrustVault Virtual Card" className="card-tab-image" />
-                                        </div>
-                                        <div className="card-tab-info">
-                                            <div className="card-tab-info-row">
-                                                <span className="card-tab-info-label">Card Holder</span>
-                                                <span className="card-tab-info-value">{activeAddress ? formatAddr(activeAddress) : '-'}</span>
-                                            </div>
-                                            <div className="card-tab-info-row">
-                                                <span className="card-tab-info-label">Vault ID</span>
-                                                <span className="card-tab-info-value">#{selectedAppId?.toString()}</span>
-                                            </div>
-                                            <div className="card-tab-info-row">
-                                                <span className="card-tab-info-label">Available Balance</span>
-                                                <span className="card-tab-info-value card-balance">{showBalanceHidden ? '••••' : vaultBalance.toFixed(4)} ALGO</span>
-                                            </div>
-                                            <div className="card-tab-info-row">
-                                                <span className="card-tab-info-label">Card Status</span>
-                                                <span className={`card-tab-info-value ${vaultState.released ? 'text-red' : 'text-green'}`}>
-                                                    {vaultState.released ? 'Inactive' : 'Active'}
-                                                </span>
-                                            </div>
-                                            <div className="card-tab-info-row">
-                                                <span className="card-tab-info-label">Card Type</span>
-                                                <span className="card-tab-info-value">Virtual • Algorand</span>
-                                            </div>
-                                        </div>
+                                <div className="detail-item">
+                                    <span className="detail-label">Owner</span>
+                                    <div className="detail-value-row">
+                                        <span className="detail-value mono">{formatAddr(vaultState.owner)}</span>
+                                        <button className="detail-copy" onClick={() => copyToClipboard(vaultState.owner)}>
+                                            <Copy className="detail-copy-icon" />
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-
-                            {activeTab === 'actions' && (
-                                <div className="tab-pane">
-                                    <div className="countdown-section">
-                                        <Countdown lastHeartbeat={vaultState.lastHeartbeat} lockDuration={vaultState.lockDuration} released={vaultState.released} />
+                                <div className="detail-item">
+                                    <span className="detail-label">Beneficiary</span>
+                                    <div className="detail-value-row">
+                                        <span className="detail-value mono">{formatAddr(vaultState.beneficiary)}</span>
+                                        <button className="detail-copy" onClick={() => copyToClipboard(vaultState.beneficiary)}>
+                                            <Copy className="detail-copy-icon" />
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-
-                            {activeTab === 'details' && (
-                                <div className="tab-pane">
-                                    <div className="detail-list">
-                                        <div className="detail-item">
-                                            <span className="detail-label">Vault Address</span>
-                                            <div className="detail-value-row">
-                                                <span className="detail-value mono">{formatAddr(vaultAddress)}</span>
-                                                <button className="detail-copy" onClick={() => copyToClipboard(vaultAddress)}>
-                                                    <Copy className="detail-copy-icon" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span className="detail-label">Owner</span>
-                                            <div className="detail-value-row">
-                                                <span className="detail-value mono">{formatAddr(vaultState.owner)}</span>
-                                                <button className="detail-copy" onClick={() => copyToClipboard(vaultState.owner)}>
-                                                    <Copy className="detail-copy-icon" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span className="detail-label">Beneficiary</span>
-                                            <div className="detail-value-row">
-                                                <span className="detail-value mono">{formatAddr(vaultState.beneficiary)}</span>
-                                                <button className="detail-copy" onClick={() => copyToClipboard(vaultState.beneficiary)}>
-                                                    <Copy className="detail-copy-icon" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span className="detail-label">Last Heartbeat</span>
-                                            <span className="detail-value">
-                                                {new Date(vaultState.lastHeartbeat * 1000).toLocaleString()}
-                                            </span>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span className="detail-label">Lock Duration</span>
-                                            <span className="detail-value">
-                                                {vaultState.lockDuration >= 86400
-                                                    ? `${Math.floor(vaultState.lockDuration / 86400)}d ${Math.floor((vaultState.lockDuration % 86400) / 3600)}h`
-                                                    : vaultState.lockDuration >= 3600
-                                                        ? `${Math.floor(vaultState.lockDuration / 3600)}h ${Math.floor((vaultState.lockDuration % 3600) / 60)}m`
-                                                        : `${Math.floor(vaultState.lockDuration / 60)}m ${vaultState.lockDuration % 60}s`
-                                                }
-                                            </span>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span className="detail-label">Released</span>
-                                            <span className={`detail-value ${vaultState.released ? 'text-green' : 'text-blue'}`}>
-                                                {vaultState.released ? 'Yes' : 'No'}
-                                            </span>
-                                        </div>
-                                    </div>
+                                <div className="detail-item">
+                                    <span className="detail-label">Last Heartbeat</span>
+                                    <span className="detail-value">
+                                        {new Date(vaultState.lastHeartbeat * 1000).toLocaleString()}
+                                    </span>
                                 </div>
-                            )}
+                                <div className="detail-item">
+                                    <span className="detail-label">Lock Duration</span>
+                                    <span className="detail-value">
+                                        {vaultState.lockDuration >= 86400
+                                            ? `${Math.floor(vaultState.lockDuration / 86400)}d ${Math.floor((vaultState.lockDuration % 86400) / 3600)}h`
+                                            : vaultState.lockDuration >= 3600
+                                                ? `${Math.floor(vaultState.lockDuration / 3600)}h ${Math.floor((vaultState.lockDuration % 3600) / 60)}m`
+                                                : `${Math.floor(vaultState.lockDuration / 60)}m ${vaultState.lockDuration % 60}s`
+                                        }
+                                    </span>
+                                </div>
+                                <div className="detail-item">
+                                    <span className="detail-label">Released</span>
+                                    <span className={`detail-value ${vaultState.released ? 'text-green' : 'text-blue'}`}>
+                                        {vaultState.released ? 'Yes' : 'No'}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : (
